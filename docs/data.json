@@ -1,7 +1,7 @@
 [
  {
   "이름": "김용채",
-  "모델": "Residual-CNN2D + AdaBN",
+  "모델": "Residual-CNN2D + 도메인적응",
   "입력": "STFT",
   "파라미터": "3.60M",
   "분할": "hold_A",
@@ -143,7 +143,7 @@
  },
  {
   "이름": "김용채",
-  "모델": "Residual-CNN2D + AdaBN",
+  "모델": "Residual-CNN2D + 도메인적응",
   "입력": "STFT",
   "파라미터": "3.60M",
   "분할": "hold_B",
@@ -341,7 +341,7 @@
  },
  {
   "이름": "김용채",
-  "모델": "Residual-CNN2D + AdaBN",
+  "모델": "Residual-CNN2D + 도메인적응",
   "입력": "STFT",
   "파라미터": "3.60M",
   "분할": "hold_C",
@@ -455,7 +455,7 @@
  },
  {
   "이름": "김용채",
-  "모델": "Residual-CNN2D + AdaBN",
+  "모델": "Residual-CNN2D + 도메인적응",
   "입력": "STFT",
   "파라미터": "3.60M",
   "분할": "time_82",
