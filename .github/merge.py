@@ -8,7 +8,9 @@ CONTENT_ID = "744e1d3612d7c8ed"
 SPLITS = {"hold_A", "hold_B", "hold_C", "time_82"}
 NEED = ("이름", "분할", "F1", "FNR", "FPR", "합")
 KEEP = ("이름", "모델", "입력", "파라미터", "분할", "F1", "FNR", "FPR", "합",
-        "n_gid", "n_정상", "n_고장", "content_id", "note")
+        "n_gid", "n_정상", "n_고장", "content_id", "note", "상세", "배지")
+DKEY = ("사전학습", "전처리", "모델 구조", "손실 함수", "Optimization", "Epoch", "Batch", "LR")
+BADGE = ("사전학습", "Unsupervised")
 
 
 def fail(msg):
@@ -49,6 +51,10 @@ def main():
             if not isinstance(v, (int, float)) or not (0 <= v <= 2):
                 fail(f"{k} 값이 올바르지 않습니다: {v}")
         e = {k: r[k] for k in KEEP if k in r}
+        dt = e.get("상세")
+        e["상세"] = {k: str(dt[k])[:200] for k in DKEY
+                     if isinstance(dt, dict) and dt.get(k)} if dt else {}
+        e["배지"] = [b for b in BADGE if isinstance(e.get("배지"), list) and b in e["배지"]]
         e["계정"] = who
         clean.append(e)
 

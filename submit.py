@@ -229,10 +229,34 @@ def main():
     ap.add_argument("--params", default=None,
                     help='파라미터 수를 직접 적을 때. 예: 3.6M (--ckpt 보다 우선)')
     ap.add_argument("--note", default="", help="추가 메모 (선택)")
+
+    g = ap.add_argument_group("상세 정보 (선택) — 리더보드에서 행을 누르면 펼쳐집니다")
+    g.add_argument("--pretrain", default=None,
+                   help='사전학습. 없으면 생략, 있으면 내용을 적습니다. 예: "시뮬레이션 200k창"')
+    g.add_argument("--preprocess", default=None,
+                   help='전처리. 예: "창별 RMS 정규화 · STFT n256/h128"')
+    g.add_argument("--arch", default=None, help='모델 구조. 예: "CNN2D 5블록 · width 48"')
+    g.add_argument("--loss", default=None, help='손실 함수. 예: "CrossEntropy (label smoothing 0.1)"')
+    g.add_argument("--optim", default=None, help='Optimization. 예: "AdamW wd 1e-4 · OneCycle"')
+    g.add_argument("--epochs", default=None, help="Epoch. 예: 8")
+    g.add_argument("--batch", default=None, help="Batch. 예: 128")
+    g.add_argument("--lr", default=None, help="LR. 예: 3e-4")
+    g.add_argument("--unsup", action="store_true",
+                   help="타깃 라벨을 쓰지 않았다면 켭니다 (Unsupervised 배지)")
     ap.add_argument("--loader", default=None), ap.add_argument("--cache", default=None)
     ap.add_argument("--token", default=None)
     ap.add_argument("--dry", action="store_true", help="채점만 하고 등록하지 않음")
     a = ap.parse_args()
+
+    detail = {k: str(v).strip() for k, v in (
+        ("사전학습", a.pretrain), ("전처리", a.preprocess), ("모델 구조", a.arch),
+        ("손실 함수", a.loss), ("Optimization", a.optim),
+        ("Epoch", a.epochs), ("Batch", a.batch), ("LR", a.lr)) if v not in (None, "")}
+    badge = []
+    if detail.get("사전학습") and detail["사전학습"] not in ("무", "없음", "X", "x", "-"):
+        badge.append("사전학습")
+    if a.unsup:
+        badge.append("Unsupervised")
 
     d, mans = setup(a)
     print(f"캐시 {d.content_id[:16]} · {d.n:,}창\n")
@@ -253,7 +277,8 @@ def main():
             print(f"  ✗ {os.path.basename(path)}: {e}\n")
             continue
         m.update({"이름": a.name, "모델": a.model, "입력": a.input, "파라미터": params, "분할": name,
-                  "note": a.note, "content_id": d.content_id[:16]})
+                  "note": a.note, "content_id": d.content_id[:16],
+                  "상세": detail, "배지": badge})
         out.append(m)
         ci = m["합_ci"]
         print(f"  {name:8s}  F1 {m['F1']:.3f}   FNR {m['FNR']:.3f}   FPR {m['FPR']:.3f}   "

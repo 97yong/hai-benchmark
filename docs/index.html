@@ -133,6 +133,28 @@ abbr[title]{text-decoration:none;cursor:help;border-bottom:1px dashed var(--pale
        white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mdl i{display:block;font-style:normal;font-size:12px;font-weight:600;color:var(--pale);
        letter-spacing:-.015em;margin-top:3px}
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.tags em{font-style:normal;font-size:11px;font-weight:700;letter-spacing:-.01em;
+         padding:2px 7px;border-radius:6px;background:var(--fill2);color:var(--sub)}
+.tags em.pre{background:#E8F3FF;color:#1B64DA}
+.tags em.uns{background:#E6F7EF;color:#0C8A5A}
+
+tbody tr.has{cursor:pointer}
+tbody tr.has .mdl b::after{content:'';display:inline-block;vertical-align:middle;
+  margin-left:7px;width:5px;height:5px;border-right:1.6px solid var(--pale);
+  border-bottom:1.6px solid var(--pale);transform:translateY(-2px) rotate(45deg);
+  transition:transform .18s ease}
+tbody tr.has.open .mdl b::after{transform:translateY(1px) rotate(225deg);border-color:var(--blue)}
+tbody tr.det>td{height:auto;padding:0 16px 20px;background:var(--fill)}
+tbody tr.det.hide{display:none}
+tbody tr.det:hover{background:var(--fill)}
+.spec{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));
+      gap:14px 26px;padding:18px 20px;background:var(--card);border-radius:14px;
+      border:1px solid var(--edge2);text-align:left}
+.spec div{min-width:0}
+.spec dt{font-size:11.5px;font-weight:700;color:var(--pale);letter-spacing:-.01em;margin-bottom:3px}
+.spec dd{margin:0;font-size:13.5px;font-weight:600;color:var(--ink2);letter-spacing:-.02em;
+         line-height:1.45;word-break:keep-all;overflow-wrap:anywhere}
 .v{font-size:15px;font-weight:600;white-space:nowrap;letter-spacing:-.025em}
 .v.q{color:var(--dim);font-weight:500}
 .v.top{color:var(--blue);font-weight:700}
@@ -271,9 +293,15 @@ footer{margin-top:34px;font-size:13px;color:var(--pale);font-weight:500}
     <p><code>submit.py</code> 한 파일이면 됩니다. 채점은 각자 컴퓨터에서 돌아가고 지표만 올라갑니다.</p>
     <pre>gh auth login     처음 한 번만
 
-python3 submit.py 홍길동 "CNN2D w48" \
-        pred_*.csv --params 3.6M</pre>
-    <p style="margin:0"><code>row,pred</code> 두 열이면 됩니다.
+python3 submit.py 홍길동 "CNN2D w48" pred_*.csv \
+    --input STFT --ckpt model.pt \
+    --preprocess "창별 RMS 정규화 · STFT n256/h128" \
+    --arch "CNN2D 5블록 · width 48" \
+    --loss CrossEntropy --optim "AdamW · OneCycle" \
+    --epochs 8 --batch 128 --lr 3e-4</pre>
+    <p style="margin:0"><code>row,pred</code> 두 열이면 됩니다. 전처리·구조·학습 설정을 같이 주면
+      리더보드에서 행을 눌러 펼쳐 볼 수 있습니다. 사전학습을 했다면 <code>--pretrain</code>,
+      타깃 라벨을 쓰지 않았다면 <code>--unsup</code> 를 붙이면 배지가 달립니다.
       <a id="repo" href="#">사용법 자세히 보기</a></p>
   </div>
   <div class="note">
@@ -329,7 +357,7 @@ function rollup(){
     const bySplit = {};
     list.forEach(e => { bySplit[e['분할']] = e; });
     return {이름:name, 모델:arch(list[0]), 입력:inp(list[0]), 파라미터:size(list[0]),
-            done:list.length, bySplit,
+            상세:list[0]['상세'], 배지:list[0]['배지'], done:list.length, bySplit,
             F1:avg('F1'), FNR:avg('FNR'), FPR:avg('FPR'), 합:avg('합')};
   });
 }
@@ -388,20 +416,36 @@ function drawBoard(){
   const hi = (v, k) => rows.length > 1 && eq(v, top[k]) ? ' top' : '';
   const body = rows.map((r, i) => {
     const tail = all ? `<td>${spark(r)}</td>` : '';
-    return `<tr>
+    const spec = Object.entries(r['상세'] || {}).filter(([, v]) => v);
+    const tags = (r['배지'] || []).map(b =>
+      `<em class="${b === 'Unsupervised' ? 'uns' : 'pre'}">${esc(b)}</em>`).join('');
+    return `<tr class="${spec.length ? 'has' : ''}" data-r="${i}">
       <td class="pos n">${i < 3 ? `<b>${MEDAL[i]}</b>` : i + 1}</td>
       <td><div class="per">${esc(r['이름'])}</div></td>
       <td><div class="mdl"><b>${esc(r['모델']) || '—'}</b>${
-        r['입력'] ? `<i>${esc(r['입력'])}</i>` : ''}</div></td>
+        r['입력'] ? `<i>${esc(r['입력'])}</i>` : ''}${
+        tags ? `<div class="tags">${tags}</div>` : ''}</div></td>
       <td class="v n q">${esc(r['파라미터'] ?? '—')}</td>
       <td class="v n${hi(r.F1, 'F1') || ' q'}">${f3(r.F1)}</td>
       <td class="v n${hi(r.FNR, 'FNR')}">${f3(r.FNR)}</td>
       <td class="v n${hi(r.FPR, 'FPR')}">${f3(r.FPR)}</td>
       <td class="hero n${hi(r['합'], '합')}">${f3(r['합'])}${
         all && r.done < 4 ? `<u> ${r.done}/4</u>` : ''}</td>
-      ${tail}</tr>`;
+      ${tail}</tr>` + (spec.length ? `<tr class="det hide" data-d="${i}">
+      <td colspan="${all ? 9 : 8}"><dl class="spec">${spec.map(([k, v]) =>
+        `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></td></tr>` : '');
   }).join('');
   $('tbl').innerHTML = `<table><thead>${head}</thead><tbody>${body}</tbody></table>`;
+
+  $('tbl').querySelectorAll('tr.has').forEach(tr => {
+    const det = $('tbl').querySelector(`tr.det[data-d="${tr.dataset.r}"]`);
+    tr.tabIndex = 0;
+    const toggle = () => { tr.classList.toggle('open'); det.classList.toggle('hide'); };
+    tr.addEventListener('click', toggle);
+    tr.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); toggle(); }
+    });
+  });
 }
 
 function drawSummary(){
