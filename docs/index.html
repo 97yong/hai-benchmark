@@ -188,14 +188,26 @@ tbody tr.det:hover{background:var(--fill)}
 .at{fill:var(--dim);font-size:12.5px;font-weight:600}
 .ttl{fill:var(--pale);font-size:11.5px;font-weight:700;letter-spacing:.02em}
 .node{cursor:default;transform-box:fill-box;transform-origin:center;
-      animation:rise .5s cubic-bezier(.2,.85,.3,1) backwards}
+      animation:rise .5s cubic-bezier(.2,.85,.3,1) backwards;transition:opacity .15s ease}
+.chart svg:hover .node{opacity:.28}
+.chart svg:hover .node:hover{opacity:1}
 @keyframes rise{from{opacity:0;transform:translateY(10px) scale(.55)}to{opacity:1;transform:none}}
 .node circle{transition:r .16s ease}
 .node:hover circle.core{r:8}
 .node .halo{opacity:.14}
 .node .core{stroke:var(--card);stroke-width:2}
+.lb1,.lb2{paint-order:stroke fill;stroke:var(--card);stroke-width:3.5px;
+           stroke-linejoin:round;stroke-linecap:round}
 .lb1{fill:var(--ink);font-size:13px;font-weight:700;letter-spacing:-.025em}
 .lb2{fill:var(--dim);font-size:11.5px;font-weight:600;letter-spacing:-.015em}
+.lead{stroke:var(--pale);stroke-width:1.2;fill:none;opacity:.6}
+.rk{fill:#fff;font-size:10px;font-weight:800;letter-spacing:0}
+.keys{list-style:none;display:flex;flex-wrap:wrap;gap:8px 20px;margin:18px 0 0;padding:0}
+.keys:empty{display:none}
+.keys li{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--sub)}
+.keys b{display:grid;place-items:center;width:17px;height:17px;border-radius:50%;
+        color:#fff;font-size:10px;font-weight:800;flex:none}
+.keys i{font-style:normal;color:var(--pale);font-weight:600}
 .chart .none{fill:var(--dim);font-size:14px;font-weight:600}
 @media (prefers-reduced-motion:reduce){.node{animation:none}}
 
@@ -282,6 +294,7 @@ footer{margin-top:34px;font-size:13px;color:var(--pale);font-weight:500}
     </div>
   </div>
   <div id="plot"></div>
+  <ol id="keys" class="keys"></ol>
 </div>
 </section>
 
@@ -492,6 +505,7 @@ function drawPlot(){
       aria-label="파라미터를 함께 낸 제출이 없습니다">
       <text class="none" x="${W/2}" y="${H/2}" text-anchor="middle">
         파라미터를 함께 낸 제출이 아직 없습니다</text></svg>`;
+    $('keys').innerHTML = '';
     return;
   }
   const low = LOWER[metric];
@@ -524,22 +538,49 @@ function drawPlot(){
   const xl = xt.map(v => `<text class="at" x="${X(v).toFixed(1)}" y="${H-B+24}"
       text-anchor="middle">${fmtN(v)}</text>`).join('');
 
+  // 라벨 배치 — 놓인 라벨 상자와 겹치면 위아래로 비켜 놓고, 그래도 안 되면 반대쪽으로
+  const LBH = 30, GAP = 3, PAD = 6;              // 라벨 높이 · 세로 간격 · 가로 간격
+  const wide = t => t.length * 6.4;              // 글자폭 어림
+  const boxes = [], keys = [];   // keys = 라벨을 못 붙여 번호로 표시한 점
+  const free = q => boxes.every(b =>
+    q.x1 + PAD <= b.x0 || q.x0 >= b.x1 + PAD ||
+    q.y1 + GAP <= b.y0 || q.y0 >= b.y1 + GAP);
   const nodes = pts.map((p, i) => {
-    const cx = X(p.px), cy = Y(p.mv), top = i === 0, col = hue[p['이름']];
-    const flip = cx > W - R - 130;
-    const tx = cx + (flip ? -13 : 13), anc = flip ? 'end' : 'start';
-    const meta = [p['모델'], p['입력'], p['파라미터']].filter(Boolean).join(' · ');
+    const cx = X(p.px), cy = Y(p.mv), best = i === 0, col = hue[p['이름']];
+    const meta = [p['모델'], p['입력']].filter(Boolean).join(' · ');
+    const lw = Math.max(wide(p['이름']), wide(meta)) + 6;
+    const order = cx + 13 + lw > W - R ? ['L', 'R'] : ['R', 'L'];
+    let side = order[0], dy = 0, ok = false;
+    for (const sd of order){
+      const bx = sd === 'L' ? cx - 13 - lw : cx + 13;
+      if (bx < L - 60 || bx + lw > W - R + 60) continue;
+      for (const d of [0,-15,15,-30,30,-45,45,-60,60]){
+        const q = {x0:bx, x1:bx + lw, y0:cy - 12 + d, y1:cy + 18 + d};
+        if (q.y0 < T - 6 || q.y1 > H - B + 6) continue;
+        if (free(q)){ side = sd; dy = d; ok = true; boxes.push(q); break; }
+      }
+      if (ok) break;
+    }
+    const tx = cx + (side === 'L' ? -13 : 13), anc = side === 'L' ? 'end' : 'start';
+    const ly = cy + dy;
+    if (!ok) keys.push({...p, no: keys.length + 1, col});
     return `<g class="node" style="animation-delay:${i*70}ms">
       <title>${esc(p['이름'])}
-${esc(meta)}
+${esc(meta)}${p['파라미터'] ? ' · ' + esc(p['파라미터']) : ''}
 ${metric === '합' ? 'FNR+FPR' : metric} ${f3(p.mv)}</title>
-      ${top ? `<circle class="halo" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="14" fill="${col}"/>` : ''}
-      <circle class="core" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${top ? 6 : 5}" fill="${col}"/>
-      <text class="lb1" x="${tx.toFixed(1)}" y="${(cy - 1).toFixed(1)}"
+      ${best ? `<circle class="halo" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="14" fill="${col}"/>` : ''}
+      ${ok && Math.abs(dy) > 4 ? `<path class="lead" d="M${(cx + (side === 'L' ? -6 : 6)).toFixed(1)},${
+        cy.toFixed(1)} L${tx.toFixed(1)},${(ly - 4).toFixed(1)}"/>` : ''}
+      <circle class="core" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${ok ? (best ? 6 : 5) : 8}" fill="${col}"/>
+      ${ok ? `<text class="lb1" x="${tx.toFixed(1)}" y="${(ly - 1).toFixed(1)}"
         text-anchor="${anc}">${esc(p['이름'])}</text>
-      ${meta ? `<text class="lb2" x="${tx.toFixed(1)}" y="${(cy + 13).toFixed(1)}"
-        text-anchor="${anc}">${esc(meta)}</text>` : ''}</g>`;
+      ${meta ? `<text class="lb2" x="${tx.toFixed(1)}" y="${(ly + 13).toFixed(1)}"
+        text-anchor="${anc}">${esc(meta)}</text>` : ''}`
+      : `<text class="rk" x="${cx.toFixed(1)}" y="${(cy + 3.5).toFixed(1)}"
+        text-anchor="middle">${keys.length}</text>`}</g>`;
   }).join('');
+  $('keys').innerHTML = keys.map(k => `<li><b style="background:${k.col}">${k.no}</b>
+    ${esc(k['이름'])} <i>${esc([k['모델'], k['입력']].filter(Boolean).join(' · '))}</i></li>`).join('');
 
   $('plot').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img"
     aria-label="파라미터 수 대비 ${metric === '합' ? 'FNR+FPR' : metric} 산점도">
