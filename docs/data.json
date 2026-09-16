@@ -15,17 +15,16 @@
   "content_id": "744e1d3612d7c8ed",
   "note": "타깃 라벨 미사용. DI가 τ_null 을 넘은 시나리오에만 적용",
   "상세": {
-   "사전학습": "없음 (학습 풀에서 그대로 학습)",
+   "사전학습": "없음",
    "전처리": "창별 RMS 정규화 · STFT n256/h128 + n512/h128 다중해상도 · 주파수축 이동평균(15 bin) 차감 잔차 = 4채널 · 진폭 증강 ±6 dB",
    "모델 구조": "CNN2D 5블록 · width 48 · 5시드 앙상블 · 배포 시 셀(호기×속도)별로 BN 통계만 재추정",
-   "손실 함수": "CrossEntropy (label smoothing 0.1) (적응 단계는 손실 없음 — 순전파로 BN 평균·분산만 다시 셈)",
+   "손실 함수": "CrossEntropy (label smoothing 0.1) · 적응 단계는 손실 없음 — 순전파로 BN 평균·분산만 다시 셈",
    "Optimization": "AdamW (wd 1e-4) · OneCycle · grad clip 5.0 / 적응 단계는 파라미터 갱신 없음",
    "Epoch": "8 (+ 적응 0)",
    "Batch": "128",
    "LR": "3e-4"
   },
   "배지": [
-   "사전학습",
    "Unsupervised"
   ],
   "계정": "97yong"
@@ -158,17 +157,16 @@
   "content_id": "744e1d3612d7c8ed",
   "note": "타깃 라벨 미사용. DI가 τ_null 을 넘은 시나리오에만 적용",
   "상세": {
-   "사전학습": "없음 (학습 풀에서 그대로 학습)",
+   "사전학습": "없음",
    "전처리": "창별 RMS 정규화 · STFT n256/h128 + n512/h128 다중해상도 · 주파수축 이동평균(15 bin) 차감 잔차 = 4채널 · 진폭 증강 ±6 dB",
    "모델 구조": "CNN2D 5블록 · width 48 · 5시드 앙상블 · 배포 시 셀(호기×속도)별로 BN 통계만 재추정",
-   "손실 함수": "CrossEntropy (label smoothing 0.1) (적응 단계는 손실 없음 — 순전파로 BN 평균·분산만 다시 셈)",
+   "손실 함수": "CrossEntropy (label smoothing 0.1) · 적응 단계는 손실 없음 — 순전파로 BN 평균·분산만 다시 셈",
    "Optimization": "AdamW (wd 1e-4) · OneCycle · grad clip 5.0 / 적응 단계는 파라미터 갱신 없음",
    "Epoch": "8 (+ 적응 0)",
    "Batch": "128",
    "LR": "3e-4"
   },
   "배지": [
-   "사전학습",
    "Unsupervised"
   ],
   "계정": "97yong"
@@ -357,17 +355,16 @@
   "content_id": "744e1d3612d7c8ed",
   "note": "타깃 라벨 미사용. DI가 τ_null 을 넘은 시나리오에만 적용",
   "상세": {
-   "사전학습": "없음 (학습 풀에서 그대로 학습)",
+   "사전학습": "없음",
    "전처리": "창별 RMS 정규화 · STFT n256/h128 + n512/h128 다중해상도 · 주파수축 이동평균(15 bin) 차감 잔차 = 4채널 · 진폭 증강 ±6 dB",
    "모델 구조": "CNN2D 5블록 · width 48 · 5시드 앙상블 · 배포 시 셀(호기×속도)별로 BN 통계만 재추정",
-   "손실 함수": "CrossEntropy (label smoothing 0.1) (적응 단계는 손실 없음 — 순전파로 BN 평균·분산만 다시 셈)",
+   "손실 함수": "CrossEntropy (label smoothing 0.1) · 적응 단계는 손실 없음 — 순전파로 BN 평균·분산만 다시 셈",
    "Optimization": "AdamW (wd 1e-4) · OneCycle · grad clip 5.0 / 적응 단계는 파라미터 갱신 없음",
    "Epoch": "8 (+ 적응 0)",
    "Batch": "128",
    "LR": "3e-4"
   },
   "배지": [
-   "사전학습",
    "Unsupervised"
   ],
   "계정": "97yong"
@@ -472,17 +469,16 @@
   "content_id": "744e1d3612d7c8ed",
   "note": "타깃 라벨 미사용. DI가 τ_null 을 넘은 시나리오에만 적용",
   "상세": {
-   "사전학습": "없음 (학습 풀에서 그대로 학습)",
+   "사전학습": "없음",
    "전처리": "창별 RMS 정규화 · STFT n256/h128 + n512/h128 다중해상도 · 주파수축 이동평균(15 bin) 차감 잔차 = 4채널 · 진폭 증강 ±6 dB",
    "모델 구조": "CNN2D 5블록 · width 48 · 5시드 앙상블 · 배포 시 셀(호기×속도)별로 BN 통계만 재추정",
-   "손실 함수": "CrossEntropy (label smoothing 0.1) (적응 단계는 손실 없음 — 순전파로 BN 평균·분산만 다시 셈)",
+   "손실 함수": "CrossEntropy (label smoothing 0.1) · 적응 단계는 손실 없음 — 순전파로 BN 평균·분산만 다시 셈",
    "Optimization": "AdamW (wd 1e-4) · OneCycle · grad clip 5.0 / 적응 단계는 파라미터 갱신 없음",
    "Epoch": "8 (+ 적응 0)",
    "Batch": "128",
    "LR": "3e-4"
   },
   "배지": [
-   "사전학습",
    "Unsupervised"
   ],
   "계정": "97yong"
