@@ -213,12 +213,11 @@ footer{margin-top:34px;font-size:13px;color:var(--pale);font-weight:500}
 
 <section class="pg" id="pg-dash">
 <dl class="summary">
-  <div class="sm"><dt>참가자</dt><dd class="n" id="k-who">–</dd></div>
+  <div class="sm"><dt>모델</dt><dd class="n" id="k-who">–</dd></div>
   <div class="sm lead"><dt>최저 FNR+FPR</dt><dd class="n" id="k-best">–</dd>
     <dd class="who" id="k-bestwho"></dd></div>
   <div class="sm"><dt>최고 F1</dt><dd class="n" id="k-f1">–</dd>
     <dd class="who" id="k-f1who"></dd></div>
-  <div class="sm"><dt>시험 주행</dt><dd class="n">7,976<u>주행</u></dd></div>
 </dl>
 
 <div class="tabs" id="tabs" role="tablist"></div>
@@ -360,8 +359,7 @@ function drawBoard(){
   const all = view === 'ALL';
   const s = all ? null : SPLITS.find(x => x.id === view);
   $('b-t').textContent = all ? '전체 평균' : s.name;
-  $('b-d').textContent = all ? ''
-    : `${s.flow} · ${s.kind} · 시험 ${s.gid.toLocaleString()}주행`;
+  $('b-d').textContent = all ? '' : `${s.flow} · ${s.kind}`;
 
   const rows = (all ? rollup()
     : raw.filter(e => e['분할'] === view)
@@ -408,7 +406,7 @@ function drawBoard(){
 
 function drawSummary(){
   const P = rollup();
-  $('k-who').textContent = P.length ? P.length + '명' : '–';
+  $('k-who').textContent = P.length ? P.length + '개' : '–';
   const best = P.slice().sort(order('합'))[0];
   $('k-best').textContent = best ? f3(best['합']) : '–';
   $('k-bestwho').textContent = best ? best['이름'] : '';
