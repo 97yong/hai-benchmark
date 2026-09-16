@@ -10,7 +10,7 @@ NEED = ("이름", "분할", "F1", "FNR", "FPR", "합")
 KEEP = ("이름", "모델", "입력", "파라미터", "분할", "F1", "FNR", "FPR", "합",
         "n_gid", "n_정상", "n_고장", "content_id", "note", "상세", "배지")
 DKEY = ("사전학습", "전처리", "모델 구조", "손실 함수", "Optimization", "Epoch", "Batch", "LR")
-BADGE = ("사전학습", "Unsupervised", "Adaptation")
+BADGE = ("사전학습", "Adaptation")
 
 
 def fail(msg):

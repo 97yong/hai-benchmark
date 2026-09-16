@@ -241,9 +241,6 @@ def main():
     g.add_argument("--epochs", default=None, help="Epoch. 예: 8")
     g.add_argument("--batch", default=None, help="Batch. 예: 128")
     g.add_argument("--lr", default=None, help="LR. 예: 3e-4")
-    g.add_argument("--unsup", action="store_true",
-                   help="학습에 라벨을 전혀 쓰지 않았다면 켭니다 (Unsupervised 배지). "
-                        "타깃 라벨 미사용은 모두에게 해당하므로 이 배지의 기준이 아닙니다")
     g.add_argument("--adapt", action="store_true",
                    help="예측 전에 타깃 데이터로 적응한다면 켭니다 (Adaptation 배지)")
     ap.add_argument("--loader", default=None), ap.add_argument("--cache", default=None)
@@ -260,8 +257,6 @@ def main():
     if pre and pre.strip() not in ("-", "—") and not re.match(
             r"\s*(무|없음|없다|안\s*함|x|n/?a|none|no)\b", pre, re.I):
         badge.append("사전학습")
-    if a.unsup:
-        badge.append("Unsupervised")
     if a.adapt:
         badge.append("Adaptation")
 
