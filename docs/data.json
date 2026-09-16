@@ -75,7 +75,7 @@
   "상세": {
    "사전학습": "없음",
    "전처리": "CH1 축 · 창별 RMS 정규화 · STFT n256/h128 + n512/h128 다중해상도 · 주파수축 이동평균(15 bin) 차감 잔차 = 4채널 · 진폭 증강 ±6 dB",
-   "모델 구조": "CNN2D 5블록 · width 48 · dropout 0.1 · 5시드 앙상블",
+   "모델 구조": "CNN2D 5블록 · width 48 · dropout 0.1 · 단일 모델 (앙상블 없음)",
    "손실 함수": "CrossEntropy (label smoothing 0.1)",
    "Optimization": "AdamW (wd 1e-4) · OneCycle · grad clip 5.0",
    "Epoch": "8",
@@ -217,7 +217,7 @@
   "상세": {
    "사전학습": "없음",
    "전처리": "CH1 축 · 창별 RMS 정규화 · STFT n256/h128 + n512/h128 다중해상도 · 주파수축 이동평균(15 bin) 차감 잔차 = 4채널 · 진폭 증강 ±6 dB",
-   "모델 구조": "CNN2D 5블록 · width 48 · dropout 0.1 · 5시드 앙상블",
+   "모델 구조": "CNN2D 5블록 · width 48 · dropout 0.1 · 단일 모델 (앙상블 없음)",
    "손실 함수": "CrossEntropy (label smoothing 0.1)",
    "Optimization": "AdamW (wd 1e-4) · OneCycle · grad clip 5.0",
    "Epoch": "8",
@@ -331,7 +331,7 @@
   "상세": {
    "사전학습": "없음",
    "전처리": "CH1 축 · 창별 RMS 정규화 · STFT n256/h128 + n512/h128 다중해상도 · 주파수축 이동평균(15 bin) 차감 잔차 = 4채널 · 진폭 증강 ±6 dB",
-   "모델 구조": "CNN2D 5블록 · width 48 · dropout 0.1 · 5시드 앙상블",
+   "모델 구조": "CNN2D 5블록 · width 48 · dropout 0.1 · 단일 모델 (앙상블 없음)",
    "손실 함수": "CrossEntropy (label smoothing 0.1)",
    "Optimization": "AdamW (wd 1e-4) · OneCycle · grad clip 5.0",
    "Epoch": "8",
@@ -501,7 +501,7 @@
   "상세": {
    "사전학습": "없음",
    "전처리": "CH1 축 · 창별 RMS 정규화 · STFT n256/h128 + n512/h128 다중해상도 · 주파수축 이동평균(15 bin) 차감 잔차 = 4채널 · 진폭 증강 ±6 dB",
-   "모델 구조": "CNN2D 5블록 · width 48 · dropout 0.1 · 5시드 앙상블",
+   "모델 구조": "CNN2D 5블록 · width 48 · dropout 0.1 · 단일 모델 (앙상블 없음)",
    "손실 함수": "CrossEntropy (label smoothing 0.1)",
    "Optimization": "AdamW (wd 1e-4) · OneCycle · grad clip 5.0",
    "Epoch": "8",
