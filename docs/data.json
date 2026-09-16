@@ -25,7 +25,7 @@
    "LR": "3e-4"
   },
   "배지": [
-   "Test-time adaptation"
+   "Adaptation"
   ],
   "계정": "97yong"
  },
@@ -167,7 +167,7 @@
    "LR": "3e-4"
   },
   "배지": [
-   "Test-time adaptation"
+   "Adaptation"
   ],
   "계정": "97yong"
  },
@@ -365,7 +365,7 @@
    "LR": "3e-4"
   },
   "배지": [
-   "Test-time adaptation"
+   "Adaptation"
   ],
   "계정": "97yong"
  },
@@ -479,7 +479,7 @@
    "LR": "3e-4"
   },
   "배지": [
-   "Test-time adaptation"
+   "Adaptation"
   ],
   "계정": "97yong"
  },
