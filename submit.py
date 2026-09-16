@@ -21,7 +21,7 @@
     3) --token <토큰>
 """
 from __future__ import annotations
-import argparse, glob, json, os, subprocess, sys, urllib.request, urllib.error
+import argparse, glob, json, os, re, subprocess, sys, urllib.request, urllib.error
 
 REPO = "97yong/hai-benchmark"
 BOARD_URL = "https://97yong.github.io/hai-benchmark/"
@@ -253,7 +253,9 @@ def main():
         ("손실 함수", a.loss), ("Optimization", a.optim),
         ("Epoch", a.epochs), ("Batch", a.batch), ("LR", a.lr)) if v not in (None, "")}
     badge = []
-    if detail.get("사전학습") and detail["사전학습"] not in ("무", "없음", "X", "x", "-"):
+    pre = detail.get("사전학습", "")
+    if pre and pre.strip() not in ("-", "—") and not re.match(
+            r"\s*(무|없음|없다|안\s*함|x|n/?a|none|no)\b", pre, re.I):
         badge.append("사전학습")
     if a.unsup:
         badge.append("Unsupervised")
