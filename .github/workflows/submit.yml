@@ -41,13 +41,18 @@ jobs:
           done
           exit 1
 
-      - if: steps.merge.outputs.ok == 'true'
+      # 성공 알림은 외부 제출자에게만 — 저장소 주인은 submit.py 출력으로 이미 알고 있고,
+      # 봇 댓글이 곧 메일이 되므로 주인 제출은 조용히 닫는다.
+      - if: steps.merge.outputs.ok == 'true' && github.event.issue.user.login != github.repository_owner
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
           gh issue comment ${{ github.event.issue.number }} \
             --body "${{ steps.merge.outputs.msg }} 잠시 뒤 리더보드에 나타납니다.
           https://97yong.github.io/hai-benchmark/"
-          gh issue close ${{ github.event.issue.number }}
+
+      - if: steps.merge.outputs.ok == 'true'
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh issue close ${{ github.event.issue.number }}
 
       - if: steps.merge.outputs.ok != 'true'
         env: { GH_TOKEN: "${{ github.token }}" }
