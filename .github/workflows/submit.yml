@@ -1,0 +1,50 @@
+name: 제출 반영
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: submit
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    if: startsWith(github.event.issue.title, '[submit]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+
+      - id: merge
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_USER: ${{ github.event.issue.user.login }}
+        run: python3 .github/merge.py
+
+      - if: steps.merge.outputs.ok == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/data.json
+          git diff --staged --quiet || git commit -m "제출 반영: ${{ github.event.issue.user.login }} (#${{ github.event.issue.number }})"
+          git push
+
+      - if: steps.merge.outputs.ok == 'true'
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          gh issue comment ${{ github.event.issue.number }} \
+            --body "${{ steps.merge.outputs.msg }} 잠시 뒤 리더보드에 나타납니다.
+          https://97yong.github.io/hai-benchmark/"
+          gh issue close ${{ github.event.issue.number }}
+
+      - if: steps.merge.outputs.ok != 'true'
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          gh issue comment ${{ github.event.issue.number }} \
+            --body "반영하지 못했습니다. ${{ steps.merge.outputs.msg }}"
