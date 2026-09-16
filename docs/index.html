@@ -342,8 +342,8 @@ python3 submit.py 홍길동 "CNN2D w48" pred_*.csv \
     <dl class="rules">
       <dt>순위</dt><dd>네 시나리오의 <b>평균</b>으로 매깁니다.</dd>
       <dt>집계</dt><dd>창 단위로 내면 채점기가 <b>주행 단위 다수결</b>로 묶습니다.</dd>
-      <dt>FNR</dt><dd>고장을 정상이라 놓친 주행 비율. <b>안전상 가장 위험한 오류</b>입니다.</dd>
-      <dt>FPR</dt><dd>정상을 고장이라 부른 주행 비율.</dd>
+      <dt>FNR</dt><dd>고장을 정상이라 놓친 주행 비율(%). <b>안전상 가장 위험한 오류</b>입니다.</dd>
+      <dt>FPR</dt><dd>정상을 고장이라 부른 주행 비율(%).</dd>
       <dt>FNR+FPR</dt><dd>두 오류를 더한 값. <b>낮을수록 좋습니다.</b></dd>
     </dl>
   </div>
@@ -372,7 +372,8 @@ let raw = [], key = 'F1', view = 'ALL', q = '';
 const $ = i => document.getElementById(i);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const f3 = v => (v == null || Number.isNaN(v)) ? '—' : v.toFixed(3);
+const f3 = v => (v == null || Number.isNaN(v)) ? '—' : (v * 100).toFixed(1);
+const f3p = v => (v == null || Number.isNaN(v)) ? '—' : (v * 100).toFixed(1) + '%';
 const hgt = v => Math.max(3, Math.min(34, (v / CAP) * 34));
 const eq = (a, b) => a != null && b != null && Math.abs(a - b) < 1e-9;
 const person = e => e['이름'] ?? e['팀'] ?? '익명';
@@ -403,7 +404,7 @@ function spark(r){
     const e = r.bySplit?.[s.id];
     if (!e) return `<span class="gap" title="${s.name} 미제출"></span>`;
     return `<span class="on" style="height:${hgt(e['합'])}px"
-      title="${s.name} FNR+FPR ${f3(e['합'])}"></span>`;
+      title="${s.name} FNR+FPR ${f3p(e['합'])}"></span>`;
   }).join('') + `</span>`;
 }
 
@@ -433,11 +434,11 @@ function drawBoard(){
     return;
   }
   const head = `<tr><th></th><th>이름</th><th>모델</th><th>파라미터</th>
-    <th><abbr title="세 클래스 macro F1">F1</abbr></th>
-    <th><abbr title="고장을 정상이라 놓친 주행 비율">FNR</abbr></th>
-    <th><abbr title="정상을 고장이라 부른 주행 비율">FPR</abbr></th>
-    <th class="key">${all ? '평균 FNR+FPR' : 'FNR+FPR'}</th>
-    ${all ? `<th><span class="legend"><span>시나리오별 FNR+FPR</span>
+    <th><abbr title="세 클래스 macro F1 (%)">F1 %</abbr></th>
+    <th><abbr title="고장을 정상이라 놓친 주행 비율 (%)">FNR %</abbr></th>
+    <th><abbr title="정상을 고장이라 부른 주행 비율 (%)">FPR %</abbr></th>
+    <th class="key">${all ? '평균 FNR+FPR %' : 'FNR+FPR %'}</th>
+    ${all ? `<th><span class="legend"><span>시나리오별 FNR+FPR %</span>
         <span class="ticks">${SPLITS.map(x => `<b>${x.tick}</b>`).join('')}</span></span></th>` : ''}
     </tr>`;
 
@@ -486,9 +487,9 @@ const MET = [['F1', 'F1'], ['FNR', 'FNR'], ['FPR', 'FPR'], ['합', 'FNR+FPR']];
 
 function tipHTML(p, col){
   const rows = MET.map(([k, lab]) =>
-    `<div class="${k === metric ? 'cur' : ''}"><dt>${lab}</dt><dd>${f3(p[k])}</dd></div>`).join('');
+    `<div class="${k === metric ? 'cur' : ''}"><dt>${lab}</dt><dd>${f3p(p[k])}</dd></div>`).join('');
   const sc = p.bySplit ? SPLITS.filter(s => p.bySplit[s.id]).map(s =>
-    `<div><dt>${s.name}</dt><dd>${f3(p.bySplit[s.id]['합'])}</dd></div>`).join('') : '';
+    `<div><dt>${s.name}</dt><dd>${f3p(p.bySplit[s.id]['합'])}</dd></div>`).join('') : '';
   return `<h4 style="color:${col}">${esc(p['이름'])}</h4>
     <p>${esc([p['모델'], p['입력'], p['파라미터']].filter(Boolean).join(' · '))}</p>
     <hr><dl>${rows}</dl>
@@ -520,10 +521,10 @@ function drawSummary(){
   const P = rollup();
   $('k-who').textContent = P.length ? P.length + '개' : '–';
   const best = P.slice().sort(order('합'))[0];
-  $('k-best').textContent = best ? f3(best['합']) : '–';
+  $('k-best').textContent = best ? f3p(best['합']) : '–';
   $('k-bestwho').textContent = best ? best['이름'] : '';
   const bf = P.slice().sort(order('F1'))[0];
-  $('k-f1').textContent = bf ? f3(bf.F1) : '–';
+  $('k-f1').textContent = bf ? f3p(bf.F1) : '–';
   $('k-f1who').textContent = bf ? bf['이름'] : '';
 }
 
@@ -589,7 +590,7 @@ function drawPlot(){
     + xt.map(v => `<line class="gl" x1="${X(v).toFixed(1)}" x2="${X(v).toFixed(1)}"
       y1="${T}" y2="${H-B}"/>`).join('');
   const yl = yt.map(v => `<text class="at" x="${L-13}" y="${(Y(v)+4.5).toFixed(1)}"
-      text-anchor="end">${v.toFixed(v >= 1 ? 1 : 2)}</text>`).join('');
+      text-anchor="end">${(v * 100).toFixed(v >= .1 ? 0 : 1)}</text>`).join('');
   const xl = xt.map(v => `<text class="at" x="${X(v).toFixed(1)}" y="${H-B+24}"
       text-anchor="middle">${fmtN(v)}</text>`).join('');
 
@@ -639,7 +640,7 @@ function drawPlot(){
   $('plot').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img"
     aria-label="파라미터 수 대비 ${metric === '합' ? 'FNR+FPR' : metric} 산점도">
     ${grid}${yl}${xl}
-    <text class="ttl" x="${L}" y="${T-10}">${metric === '합' ? 'FNR+FPR' : metric}${
+    <text class="ttl" x="${L}" y="${T-10}">${metric === '합' ? 'FNR+FPR' : metric} %${
       low ? ' (낮을수록 좋음)' : ' (높을수록 좋음)'}</text>
     <text class="ttl" x="${W-R}" y="${H-8}" text-anchor="end">파라미터 수</text>
     ${nodes}</svg>`;

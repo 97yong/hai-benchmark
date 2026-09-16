@@ -283,8 +283,9 @@ def main():
                   "상세": detail, "배지": badge})
         out.append(m)
         ci = m["합_ci"]
-        print(f"  {name:8s}  F1 {m['F1']:.3f}   FNR {m['FNR']:.3f}   FPR {m['FPR']:.3f}   "
-              f"합 {m['합']:.3f}  [{ci[0]:.3f}, {ci[1]:.3f}]   ({m['n_gid']:,} gid)")
+        print(f"  {name:8s}  F1 {m['F1']*100:5.1f}%   FNR {m['FNR']*100:5.1f}%   "
+              f"FPR {m['FPR']*100:5.1f}%   FNR+FPR {m['합']*100:5.1f}%  "
+              f"[{ci[0]*100:.1f}, {ci[1]*100:.1f}]   ({m['n_gid']:,} gid)")
     if not out:
         sys.exit("\n등록할 결과가 없습니다.")
     if a.dry:
