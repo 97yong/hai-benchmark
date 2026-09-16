@@ -349,9 +349,10 @@ const named = id => SPLITS.find(s => s.id === id)?.name ?? id;
 $('repo').href = REPO;
 
 function rollup(){
-  const g = {};
-  raw.forEach(e => { (g[person(e)] ??= []).push(e); });
-  return Object.entries(g).map(([name, list]) => {
+  const g = {};                                   // 한 사람이 모델을 여러 개 올릴 수 있다
+  raw.forEach(e => { (g[[person(e), arch(e), inp(e)].join('\u0000')] ??= []).push(e); });
+  return Object.entries(g).map(([id, list]) => {
+    const name = id.split('\u0000')[0];
     const avg = k => list.reduce((a, e) => a + (e[k] ?? 0), 0) / list.length;
     const bySplit = {};
     list.forEach(e => { bySplit[e['분할']] = e; });

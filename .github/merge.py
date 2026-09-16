@@ -64,13 +64,18 @@ def main():
             old = json.load(open(DATA, encoding="utf-8"))
         except Exception:
             old = []
-    keep = {(x.get("이름"), x.get("분할")): x for x in old if isinstance(x, dict)}
+    # 한 사람이 모델을 여러 개 올릴 수 있다 — 같은 (이름, 모델) 이면 덮어쓴다
+    ident = lambda x: (x.get("이름"), x.get("모델") or "", x.get("입력") or "", x.get("분할"))
+    owner = {x.get("이름"): x.get("계정") for x in old
+             if isinstance(x, dict) and x.get("계정")}
+    keep = {ident(x): x for x in old if isinstance(x, dict)}
     for e in clean:
-        prev = keep.get((e["이름"], e["분할"]))
-        if prev and prev.get("계정") and prev["계정"] != who:
-            fail(f"'{e['이름']}' 은 이미 다른 계정({prev['계정']})이 쓰고 있습니다. 다른 이름을 써주세요.")
-        keep[(e["이름"], e["분할"])] = e
+        if owner.get(e["이름"], who) != who:
+            fail(f"'{e['이름']}' 은 이미 다른 계정({owner[e['이름']]})이 쓰고 있습니다. 다른 이름을 써주세요.")
+        keep[ident(e)] = e
     merged = sorted(keep.values(), key=lambda x: (x.get("분할", ""), x.get("합", 9)))
+    if len({ident(x)[:3] for x in merged}) > 60:
+        fail("등록 한도를 넘었습니다.")
     os.makedirs(os.path.dirname(DATA), exist_ok=True)
     json.dump(merged, open(DATA, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 
