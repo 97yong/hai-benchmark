@@ -131,13 +131,12 @@ abbr[title]{text-decoration:none;cursor:help;border-bottom:1px dashed var(--pale
 .mdl{max-width:290px;min-width:0}
 .mdl b{display:block;font-size:14.5px;font-weight:600;color:var(--ink2);letter-spacing:-.02em;
        white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mdl i{display:block;font-style:normal;font-size:12px;font-weight:600;color:var(--pale);
-       letter-spacing:-.015em;margin-top:3px}
-.tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
-.tags em{font-style:normal;font-size:11px;font-weight:700;letter-spacing:-.01em;
+.mdl .sub{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:4px}
+.mdl i{font-style:normal;font-size:12px;font-weight:600;color:var(--pale);letter-spacing:-.015em}
+.mdl em{font-style:normal;font-size:11px;font-weight:700;letter-spacing:-.01em;
          padding:2px 7px;border-radius:6px;background:var(--fill2);color:var(--sub)}
-.tags em.pre{background:#E8F3FF;color:#1B64DA}
-.tags em.uns{background:#E6F7EF;color:#0C8A5A}
+.mdl em.pre{background:#E8F3FF;color:#1B64DA}
+.mdl em.uns{background:#E6F7EF;color:#0C8A5A}
 
 tbody tr.has{cursor:pointer}
 tbody tr.has .mdl b::after{content:'';display:inline-block;vertical-align:middle;
@@ -423,8 +422,8 @@ function drawBoard(){
       <td class="pos n">${i < 3 ? `<b>${MEDAL[i]}</b>` : i + 1}</td>
       <td><div class="per">${esc(r['이름'])}</div></td>
       <td><div class="mdl"><b>${esc(r['모델']) || '—'}</b>${
-        r['입력'] ? `<i>${esc(r['입력'])}</i>` : ''}${
-        tags ? `<div class="tags">${tags}</div>` : ''}</div></td>
+        r['입력'] || tags ? `<div class="sub">${
+          r['입력'] ? `<i>${esc(r['입력'])}</i>` : ''}${tags}</div>` : ''}</div></td>
       <td class="v n q">${esc(r['파라미터'] ?? '—')}</td>
       <td class="v n${hi(r.F1, 'F1') || ' q'}">${f3(r.F1)}</td>
       <td class="v n${hi(r.FNR, 'FNR')}">${f3(r.FNR)}</td>
