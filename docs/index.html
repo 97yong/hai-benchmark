@@ -238,9 +238,9 @@ footer{margin-top:34px;font-size:13px;color:var(--pale);font-weight:500}
         <input id="q" type="search" placeholder="이름, 모델" aria-label="이름 또는 모델 검색">
       </label>
       <div class="pick" role="group" aria-label="정렬 기준">
-        <button type="button" data-k="합" aria-pressed="true">FNR+FPR</button>
+        <button type="button" data-k="F1" aria-pressed="true">F1</button>
+        <button type="button" data-k="합" aria-pressed="false">FNR+FPR</button>
         <button type="button" data-k="FNR" aria-pressed="false">FNR</button>
-        <button type="button" data-k="F1" aria-pressed="false">F1</button>
       </div>
     </div>
   </div>
@@ -255,10 +255,10 @@ footer{margin-top:34px;font-size:13px;color:var(--pale);font-weight:500}
   <div class="ch">
     <h3>파라미터 대비 성능</h3>
     <div class="pick" role="group" aria-label="지표 선택">
-      <button type="button" data-m="합" aria-pressed="true">FNR+FPR</button>
+      <button type="button" data-m="F1" aria-pressed="true">F1</button>
+      <button type="button" data-m="합" aria-pressed="false">FNR+FPR</button>
       <button type="button" data-m="FNR" aria-pressed="false">FNR</button>
       <button type="button" data-m="FPR" aria-pressed="false">FPR</button>
-      <button type="button" data-m="F1" aria-pressed="false">F1</button>
     </div>
   </div>
   <div id="plot"></div>
@@ -307,7 +307,7 @@ const SPLITS = [
    fr:'여섯 셀 모두', gid:1331, nrm:82},
 ];
 const CAP = .60, MEDAL = ['🥇','🥈','🥉'];
-let raw = [], key = '합', view = 'ALL', q = '';
+let raw = [], key = 'F1', view = 'ALL', q = '';
 
 const $ = i => document.getElementById(i);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
@@ -433,7 +433,7 @@ const fmtN = n => n >= 1e9 ? (n / 1e9).toFixed(n >= 1e10 ? 0 : 1) + 'B'
 
 const HUE = ['#3182F6','#12B886','#F0475F','#9775FA','#F59F00','#22B8CF','#E64980','#748FFC'];
 const LOWER = {'합':1, 'FNR':1, 'FPR':1, 'F1':0};
-let metric = '합';
+let metric = 'F1';
 
 function nice(v){ const e = 10 ** Math.floor(Math.log10(v || 1)); const m = v / e;
   return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * e; }
