@@ -137,6 +137,7 @@ abbr[title]{text-decoration:none;cursor:help;border-bottom:1px dashed var(--pale
          padding:2px 7px;border-radius:6px;background:var(--fill2);color:var(--sub)}
 .mdl em.pre{background:#E8F3FF;color:#1B64DA}
 .mdl em.uns{background:#E6F7EF;color:#0C8A5A}
+.mdl em.tta{background:#F3F0FF;color:#6741D9}
 
 tbody tr.has{cursor:pointer}
 tbody tr.has .mdl b::after{content:'';display:inline-block;vertical-align:middle;
@@ -300,7 +301,8 @@ python3 submit.py 홍길동 "CNN2D w48" pred_*.csv \
     --epochs 8 --batch 128 --lr 3e-4</pre>
     <p style="margin:0"><code>row,pred</code> 두 열이면 됩니다. 전처리·구조·학습 설정을 같이 주면
       리더보드에서 행을 눌러 펼쳐 볼 수 있습니다. 사전학습을 했다면 <code>--pretrain</code>,
-      타깃 라벨을 쓰지 않았다면 <code>--unsup</code> 를 붙이면 배지가 달립니다.
+      학습에 라벨을 전혀 쓰지 않았다면 <code>--unsup</code>,
+      예측 전에 타깃 데이터를 먼저 봐야 한다면 <code>--tta</code> 를 붙이면 배지가 달립니다.
       <a id="repo" href="#">사용법 자세히 보기</a></p>
   </div>
   <div class="note">
@@ -418,7 +420,7 @@ function drawBoard(){
     const tail = all ? `<td>${spark(r)}</td>` : '';
     const spec = Object.entries(r['상세'] || {}).filter(([, v]) => v);
     const tags = (r['배지'] || []).map(b =>
-      `<em class="${b === 'Unsupervised' ? 'uns' : 'pre'}">${esc(b)}</em>`).join('');
+      `<em class="${{Unsupervised:'uns', '사전학습':'pre'}[b] || 'tta'}">${esc(b)}</em>`).join('');
     return `<tr class="${spec.length ? 'has' : ''}" data-r="${i}">
       <td class="pos n">${i < 3 ? `<b>${MEDAL[i]}</b>` : i + 1}</td>
       <td><div class="per">${esc(r['이름'])}</div></td>

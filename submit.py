@@ -242,7 +242,10 @@ def main():
     g.add_argument("--batch", default=None, help="Batch. 예: 128")
     g.add_argument("--lr", default=None, help="LR. 예: 3e-4")
     g.add_argument("--unsup", action="store_true",
-                   help="타깃 라벨을 쓰지 않았다면 켭니다 (Unsupervised 배지)")
+                   help="학습에 라벨을 전혀 쓰지 않았다면 켭니다 (Unsupervised 배지). "
+                        "타깃 라벨 미사용은 모두에게 해당하므로 이 배지의 기준이 아닙니다")
+    g.add_argument("--tta", action="store_true",
+                   help="예측 전에 타깃 데이터를 먼저 봐야 한다면 켭니다 (Test-time adaptation 배지)")
     ap.add_argument("--loader", default=None), ap.add_argument("--cache", default=None)
     ap.add_argument("--token", default=None)
     ap.add_argument("--dry", action="store_true", help="채점만 하고 등록하지 않음")
@@ -259,6 +262,8 @@ def main():
         badge.append("사전학습")
     if a.unsup:
         badge.append("Unsupervised")
+    if a.tta:
+        badge.append("Test-time adaptation")
 
     d, mans = setup(a)
     print(f"캐시 {d.content_id[:16]} · {d.n:,}창\n")
