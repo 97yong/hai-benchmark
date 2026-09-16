@@ -25,15 +25,25 @@ jobs:
         env:
           ISSUE_BODY: ${{ github.event.issue.body }}
           ISSUE_USER: ${{ github.event.issue.user.login }}
-        run: python3 .github/merge.py
-
-      - if: steps.merge.outputs.ok == 'true'
+          WHO: ${{ github.event.issue.user.login }}
+          NUM: ${{ github.event.issue.number }}
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/data.json
-          git diff --staged --quiet || git commit -m "제출 반영: ${{ github.event.issue.user.login }} (#${{ github.event.issue.number }})"
-          git push
+          for i in 1 2 3 4 5; do                       # 동시 제출 대비 — 최신 상태로 다시 병합
+            python3 .github/merge.py || exit 1
+            grep -q '^ok=true' "$GITHUB_OUTPUT" || exit 0
+            git add docs/data.json
+            git diff --staged --quiet && exit 0
+            git commit -q -m "Record submission from $WHO (#$NUM)"
+            git push -q && exit 0
+            echo "push rejected — retry $i"
+            git reset --hard -q HEAD~1
+            git pull --rebase -q
+            sed -i '/^ok=/d;/^msg=/d' "$GITHUB_OUTPUT"
+            sleep $((RANDOM % 5 + 2))
+          done
+          exit 1
 
       - if: steps.merge.outputs.ok == 'true'
         env: { GH_TOKEN: "${{ github.token }}" }
