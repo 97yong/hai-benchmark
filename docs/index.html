@@ -44,6 +44,8 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0}
+/* 페이지마다 내용 길이가 달라도 스크롤바 자리를 늘 비워 두어 본문이 좌우로 흔들리지 않게 */
+html{overflow-y:scroll;scrollbar-gutter:stable}
 img{max-width:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--f);font-size:15px;line-height:1.5;
      letter-spacing:-.015em;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
