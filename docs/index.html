@@ -221,13 +221,21 @@ tbody tr.det:hover{background:var(--fill)}
 .lb1{fill:var(--ink);font-size:13px;font-weight:700;letter-spacing:-.025em}
 .lb2{fill:var(--dim);font-size:11.5px;font-weight:600;letter-spacing:-.015em}
 .lead{stroke:var(--pale);stroke-width:1.2;fill:none;opacity:.6}
-.rk{fill:#fff;font-size:10px;font-weight:800;letter-spacing:0}
-.keys{list-style:none;display:flex;flex-wrap:wrap;gap:8px 20px;margin:18px 0 0;padding:0}
+.rk{fill:#fff;font-size:10.5px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.under .pin{stroke:var(--card);stroke-width:1.2}
+.under{pointer-events:none;transition:opacity .15s ease}
+.chart svg:hover .under{opacity:.28}
+.keys{list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));
+      gap:9px 26px;margin:20px 0 0;padding:16px 0 0;border-top:1px solid var(--edge2);counter-reset:none}
 .keys:empty{display:none}
-.keys li{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--sub)}
+.keys li{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--sub);min-width:0}
+.keys span{color:var(--ink2);font-weight:700;white-space:nowrap}
+.keys u{text-decoration:none;margin-left:auto;padding-left:10px;font-weight:700;color:var(--ink2);
+        font-variant-numeric:tabular-nums;white-space:nowrap}
 .keys b{display:grid;place-items:center;width:17px;height:17px;border-radius:50%;
         color:#fff;font-size:10px;font-weight:800;flex:none}
-.keys i{font-style:normal;color:var(--pale);font-weight:600}
+.keys i{font-style:normal;color:var(--pale);font-weight:600;min-width:0;
+        overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chart .none{fill:var(--dim);font-size:14px;font-weight:600}
 @media (prefers-reduced-motion:reduce){.node{animation:none}}
 
@@ -490,7 +498,7 @@ function tipHTML(p, col){
     `<div class="${k === metric ? 'cur' : ''}"><dt>${lab}</dt><dd>${f3p(p[k])}</dd></div>`).join('');
   const sc = p.bySplit ? SPLITS.filter(s => p.bySplit[s.id]).map(s =>
     `<div><dt>${s.name}</dt><dd>${f3p(p.bySplit[s.id]['합'])}</dd></div>`).join('') : '';
-  return `<h4 style="color:${col}">${esc(p['이름'])}</h4>
+  return `<h4 style="color:${col}">${p.rank ? p.rank + '. ' : ''}${esc(p['이름'])}</h4>
     <p>${esc([p['모델'], p['입력'], p['파라미터']].filter(Boolean).join(' · '))}</p>
     <hr><dl>${rows}</dl>
     ${sc ? `<hr><dl><div><dt style="grid-column:1/-1">시나리오별 FNR+FPR</dt></div>${sc}</dl>` : ''}`;
@@ -514,7 +522,7 @@ function bindTip(pts, hue){
     g.addEventListener('pointermove', e => move(e, p));
     g.addEventListener('pointerleave', hide);
   });
-  $('plot').addEventListener('pointerleave', hide);
+  if (!$('plot').dataset.tip) { $('plot').addEventListener('pointerleave', hide); $('plot').dataset.tip = '1'; }
 }
 
 function drawSummary(){
@@ -583,67 +591,88 @@ function drawPlot(){
   for (let e = Math.floor(x0); e <= Math.ceil(x1); e++)
     for (const m of [1, 3]){ const v = m * 10 ** e, l = Math.log10(v);
       if (l >= x0 && l <= x1) xt.push(v); }
-  const yt = [0, 1, 2, 3, 4].map(i => y0 + (y1 - y0) * i / 4);
+  // y 눈금 — 정수 % 로 떨어지는 간격
+  const stp = [0.005, 0.01, 0.02, 0.025, 0.05, 0.1, 0.2, 0.25].find(t => (y1 - y0) / t <= 6) ?? 0.25;
+  const yt = [];
+  for (let v = Math.ceil(y0 / stp - 1e-9) * stp; v <= y1 + 1e-9; v += stp) yt.push(+v.toFixed(4));
 
   const grid = yt.map(v => `<line class="gl${v === 0 ? ' zero' : ''}" x1="${L}" x2="${W-R}"
       y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}"/>`).join('')
     + xt.map(v => `<line class="gl" x1="${X(v).toFixed(1)}" x2="${X(v).toFixed(1)}"
       y1="${T}" y2="${H-B}"/>`).join('');
   const yl = yt.map(v => `<text class="at" x="${L-13}" y="${(Y(v)+4.5).toFixed(1)}"
-      text-anchor="end">${(v * 100).toFixed(v >= .1 ? 0 : 1)}</text>`).join('');
+      text-anchor="end">${(v * 100).toFixed(stp >= .01 ? 0 : 1)}</text>`).join('');
   const xl = xt.map(v => `<text class="at" x="${X(v).toFixed(1)}" y="${H-B+24}"
       text-anchor="middle">${fmtN(v)}</text>`).join('');
 
-  // 라벨 배치 — 놓인 라벨 상자와 겹치면 위아래로 비켜 놓고, 그래도 안 되면 반대쪽으로
-  const LBH = 30, GAP = 3, PAD = 6;              // 라벨 높이 · 세로 간격 · 가로 간격
-  const wide = t => t.length * 6.4;              // 글자폭 어림
-  const boxes = [], keys = [];   // keys = 라벨을 못 붙여 번호로 표시한 점
-  const free = q => boxes.every(b =>
-    q.x1 + PAD <= b.x0 || q.x0 >= b.x1 + PAD ||
-    q.y1 + GAP <= b.y0 || q.y0 >= b.y1 + GAP);
-  const nodes = pts.map((p, i) => {
-    const cx = X(p.px), cy = Y(p.mv), best = i === 0, col = hue[p['이름']];
-    const meta = [p['모델'], p['입력']].filter(Boolean).join(' · ');
-    const lw = Math.max(wide(p['이름']), wide(meta)) + 6;
-    const order = cx + 13 + lw > W - R ? ['L', 'R'] : ['R', 'L'];
-    let side = order[0], dy = 0, ok = false;
-    for (const sd of order){
-      const bx = sd === 'L' ? cx - 13 - lw : cx + 13;
-      if (bx < L - 60 || bx + lw > W - R + 60) continue;
-      for (const d of [0,-15,15,-30,30,-45,45,-60,60]){
-        const q = {x0:bx, x1:bx + lw, y0:cy - 12 + d, y1:cy + 18 + d};
-        if (q.y0 < T - 6 || q.y1 > H - B + 6) continue;
-        if (free(q)){ side = sd; dy = d; ok = true; boxes.push(q); break; }
-      }
-      if (ok) break;
+  // 번호 = 지금 고른 지표의 순위. 모든 점에 단다.
+  // 번호끼리 겹치면 번호만 둘레로 빼고, 실제 위치에는 작은 점 + 지시선을 남긴다.
+  const R0 = 9, pos = [];
+  const clear = (x, y) => pos.every(q => Math.hypot(q.x - x, q.y - y) >= 2 * R0 + 3);
+  const inside = (x, y) => x >= L + R0 && x <= W - R && y >= T + R0 && y <= H - B - R0;
+  const P = pts.map((p, i) => {
+    p.rank = i + 1;
+    const cx = X(p.px), cy = Y(p.mv);
+    let bx = cx, by = cy;
+    if (!clear(cx, cy)) {
+      search: for (const rad of [23, 35, 47, 59, 71])
+        for (let k = 0; k < 16; k++) {
+          const a = -Math.PI / 2 + k * Math.PI / 8;
+          const x = cx + rad * Math.cos(a), y = cy + rad * Math.sin(a);
+          if (inside(x, y) && clear(x, y)) { bx = x; by = y; break search; }
+        }
     }
-    const tx = cx + (side === 'L' ? -13 : 13), anc = side === 'L' ? 'end' : 'start';
-    const ly = cy + dy;
-    if (!ok) keys.push({...p, no: keys.length + 1, col});
-    return `<g class="node" data-i="${i}" style="animation-delay:${i*70}ms">
-      <circle class="hit" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="15"/>
-      ${best ? `<circle class="halo" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="14" fill="${col}"/>` : ''}
-      ${ok && Math.abs(dy) > 4 ? `<path class="lead" d="M${(cx + (side === 'L' ? -6 : 6)).toFixed(1)},${
-        cy.toFixed(1)} L${tx.toFixed(1)},${(ly - 4).toFixed(1)}"/>` : ''}
-      <circle class="core" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${ok ? (best ? 6 : 5) : 8}" fill="${col}"/>
-      ${ok ? `<text class="lb1" x="${tx.toFixed(1)}" y="${(ly - 1).toFixed(1)}"
-        text-anchor="${anc}">${esc(p['이름'])}</text>
-      ${meta ? `<text class="lb2" x="${tx.toFixed(1)}" y="${(ly + 13).toFixed(1)}"
-        text-anchor="${anc}">${esc(meta)}</text>` : ''}`
-      : `<text class="rk" x="${cx.toFixed(1)}" y="${(cy + 3.5).toFixed(1)}"
-        text-anchor="middle">${keys.length}</text>`}</g>`;
-  }).join('');
-  $('keys').innerHTML = keys.map(k => `<li><b style="background:${k.col}">${k.no}</b>
-    ${esc(k['이름'])} <i>${esc([k['모델'], k['입력']].filter(Boolean).join(' · '))}</i></li>`).join('');
-  bindTip(pts, hue);
+    pos.push({x: bx, y: by});
+    return {p, i, cx, cy, bx, by, col: hue[p['이름']]};
+  });
 
+  // 글자 이름표는 번호 바로 옆에 자리가 날 때만 붙인다 (비켜 놓지 않는다 — 엉뚱한 점에 붙는 원인)
+  const tw = (t, px) => [...t].reduce((a, c) => a + (/[ㄱ-힝]/.test(c) ? px * .98 : px * .56), 0);
+  const badge = pos.map(q => ({x0: q.x - R0 - 3, x1: q.x + R0 + 3, y0: q.y - R0 - 3, y1: q.y + R0 + 3}));
+  const hit = (a, b) => !(a.x1 + 5 <= b.x0 || a.x0 >= b.x1 + 5 || a.y1 + 2 <= b.y0 || a.y0 >= b.y1 + 2);
+  const tags = [], under = [];
+  const nodes = P.map(({p, i, cx, cy, bx, by, col}) => {
+    const inp = p['입력'] && p['입력'].length <= 8 ? p['입력'] : '';
+    const meta = [p['모델'], inp].filter(Boolean).join(' · ');
+    const lw = Math.max(tw(p['이름'], 13), tw(meta, 11.5)) + 2;
+    let side = null;
+    for (const sd of (bx + R0 + 6 + lw > W - R + 30 ? ['L', 'R'] : ['R', 'L'])) {
+      const x0 = sd === 'R' ? bx + R0 + 6 : bx - R0 - 6 - lw;
+      const q = {x0, x1: x0 + lw, y0: by - 13, y1: by + 17};
+      if (q.x0 < L - 50 || q.x1 > W - R + 30 || q.y0 < T - 8 || q.y1 > H - B + 8) continue;
+      if (badge.every((b, j) => j === i || !hit(q, b)) && tags.every(b => !hit(q, b))) {
+        tags.push(q); side = sd; break;
+      }
+    }
+    const moved = Math.hypot(bx - cx, by - cy) > 1;
+    const tx = side === 'L' ? bx - R0 - 6 : bx + R0 + 6, anc = side === 'L' ? 'end' : 'start';
+    if (moved) under.push(`<path class="lead" d="M${cx.toFixed(1)},${cy.toFixed(1)} L${bx.toFixed(1)},${by.toFixed(1)}"/>
+      <circle class="pin" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="2.8" fill="${col}"/>`);
+    return `<g class="node" data-i="${i}" style="animation-delay:${i*60}ms">
+      <circle class="hit" cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="15"/>
+      ${i === 0 ? `<circle class="halo" cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="16" fill="${col}"/>` : ''}
+      <circle class="core" cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="${R0}" fill="${col}"/>
+      <text class="rk" x="${bx.toFixed(1)}" y="${(by + 3.6).toFixed(1)}" text-anchor="middle">${i + 1}</text>
+      ${side ? `<text class="lb1" x="${tx.toFixed(1)}" y="${(by - 1).toFixed(1)}"
+        text-anchor="${anc}">${esc(p['이름'])}</text>
+      ${meta ? `<text class="lb2" x="${tx.toFixed(1)}" y="${(by + 13).toFixed(1)}"
+        text-anchor="${anc}">${esc(meta)}</text>` : ''}` : ''}</g>`;
+  }).join('');
+
+  const mname = metric === '합' ? 'FNR+FPR' : metric;
   $('plot').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img"
-    aria-label="파라미터 수 대비 ${metric === '합' ? 'FNR+FPR' : metric} 산점도">
+    aria-label="파라미터 수 대비 ${mname} 산점도">
     ${grid}${yl}${xl}
-    <text class="ttl" x="${L}" y="${T-10}">${metric === '합' ? 'FNR+FPR' : metric} %${
-      low ? ' (낮을수록 좋음)' : ' (높을수록 좋음)'}</text>
+    <text class="ttl" x="${L}" y="${T-10}">${mname} %${
+      low ? ' (낮을수록 좋음)' : ' (높을수록 좋음)'} · 번호는 ${mname} 순위</text>
     <text class="ttl" x="${W-R}" y="${H-8}" text-anchor="end">파라미터 수</text>
-    ${nodes}</svg>`;
+    <g class="under">${under.join('')}</g>${nodes}</svg>`;
+
+  // 전체 순위표 — 번호와 같은 순서
+  $('keys').innerHTML = P.map(({p, i, col}) => `<li><b style="background:${col}">${i + 1}</b>
+    <span>${esc(p['이름'])}</span><i>${esc([p['모델'], p['입력']].filter(Boolean).join(' · '))}</i>
+    <u>${f3p(p.mv)}</u></li>`).join('');
+  bindTip(pts, hue);                                   // 새로 그린 점에 붙인다
 }
 
 function draw(){ drawTabs(); drawBoard(); drawSummary(); drawPlot(); }
