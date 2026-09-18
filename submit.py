@@ -11,6 +11,10 @@
     13,1
 분할은 행 번호로 자동 판별합니다(파일명 규칙 없음).
 
+Few-shot 세션(저자원)은 시험셋이 time_82 와 완전히 같아 행으로 가를 수 없습니다. --split 을 주세요.
+    python3 submit.py 홍길동 "CNN2D" pred.csv --split time_sub05
+    (time_sub01 / time_sub02 / time_sub05 / time_sub10 / time_sub20 — 학습량 1·2·5·10·20 %)
+
 필요한 것: oht_loader(v2) 패키지 + 진동 캐시 폴더. 둘 다 각자 로컬에 있으면 됩니다.
     --loader /path/to/oht_loader_v2      (기본: OHT_LOADER 환경변수 또는 자동 탐색)
     --cache  /path/to/_cache             (기본: OHT_CACHE 환경변수 또는 자동 탐색)
@@ -25,7 +29,9 @@ import argparse, glob, json, os, re, subprocess, sys, urllib.request, urllib.err
 
 REPO = "97yong/hai-benchmark"
 BOARD_URL = "https://97yong.github.io/hai-benchmark/"
-SPLITS = ["hold_C", "hold_A", "hold_B", "time_82"]
+GENERAL = ["hold_C", "hold_A", "hold_B", "time_82"]
+FEWSHOT = ["time_sub01", "time_sub02", "time_sub05", "time_sub10", "time_sub20"]
+SPLITS = GENERAL + FEWSHOT          # few-shot 은 시험셋 행이 time_82 와 같아 뒤에 둔다
 CLASSES = ["정상", "축계", "기어계"]
 MAP3 = {"정상": 0, "축하중 증가": 1, "클램프 풀림": 1, "윤활 불량": 2, "기어 치 파손": 2}
 NORMAL, N_BOOT, W_FNR = 0, 1000, 2.0
@@ -64,7 +70,14 @@ def setup(args):
     sp_dir = os.path.join(ld, "splits")
     if not os.path.isdir(sp_dir):
         sys.exit(f"분할 manifest 폴더가 없습니다: {sp_dir}")
-    return d, {s: load_manifest(d, os.path.join(sp_dir, f"{s}.json")) for s in SPLITS}
+    mans = {}
+    for name in SPLITS:                      # 없는 manifest 는 건너뛴다 (옛 로더 호환)
+        fp = os.path.join(sp_dir, f"{name}.json")
+        if os.path.exists(fp):
+            mans[name] = load_manifest(d, fp)
+    if not mans:
+        sys.exit(f"분할 manifest 를 찾지 못했습니다: {sp_dir}")
+    return d, mans
 
 
 # ----------------------------------------------------------------- 채점
@@ -119,6 +132,24 @@ def read_pred(path):
     if bad:
         raise ValueError(f"{path}: pred 는 0/1/2 만 허용 (발견: {bad})")
     return dict(zip(df.row.astype(int), df.pred.astype(int)))
+
+
+def pick_split(path, pred_rows, mans, forced):
+    """분할 결정 순서 — ① --split ② 파일명에 든 분할 이름 ③ 행 번호(기존 방식).
+
+    Few-shot(time_sub*) 은 시험셋 행이 time_82 와 똑같아서 ③ 으로는 가를 수 없다.
+    그래서 ①·② 를 먼저 본다. ②·③ 은 예측에 그 분할의 시험 행이 다 들어있을 때만 쓴다.
+    """
+    if forced:
+        if forced not in mans:
+            raise ValueError(f"모르는 분할 '{forced}' (가능: {', '.join(mans)})")
+        return forced
+    base = os.path.basename(path)
+    named = sorted((n for n in mans if n in base), key=len, reverse=True)
+    for n in named:
+        if set(int(r) for r in mans[n].test) <= pred_rows:
+            return n
+    return which_split(pred_rows, mans)
 
 
 def which_split(pred_rows, mans):
@@ -229,6 +260,10 @@ def main():
     ap.add_argument("--params", default=None,
                     help='파라미터 수를 직접 적을 때. 예: 3.6M (--ckpt 보다 우선)')
     ap.add_argument("--note", default="", help="추가 메모 (선택)")
+    ap.add_argument("--split", default=None, metavar="이름",
+                    help="분할을 직접 지정. Few-shot 은 시험셋 행이 time_82 와 같아 자동 판별이 "
+                         "안 되므로 필요합니다. 예: --split time_sub05 "
+                         "(파일명에 분할 이름이 들어 있으면 생략 가능)")
 
     g = ap.add_argument_group("상세 정보 (선택) — 리더보드에서 행을 누르면 펼쳐집니다")
     g.add_argument("--pretrain", default=None,
@@ -273,7 +308,7 @@ def main():
     for path in files:
         try:
             pb = read_pred(path)
-            name = which_split(set(pb), mans)
+            name = pick_split(path, set(pb), mans, a.split)
             m = score(d, mans[name], pb)
         except Exception as e:
             print(f"  ✗ {os.path.basename(path)}: {e}\n")
@@ -283,7 +318,7 @@ def main():
                   "상세": detail, "배지": badge})
         out.append(m)
         ci = m["합_ci"]
-        print(f"  {name:8s}  F1 {m['F1']*100:5.1f}%   FNR {m['FNR']*100:5.1f}%   "
+        print(f"  {name:10s}  F1 {m['F1']*100:5.1f}%   FNR {m['FNR']*100:5.1f}%   "
               f"FPR {m['FPR']*100:5.1f}%   FNR+FPR {m['합']*100:5.1f}%  "
               f"[{ci[0]*100:.1f}, {ci[1]*100:.1f}]   ({m['n_gid']:,} gid)")
     if not out:

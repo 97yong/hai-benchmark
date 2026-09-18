@@ -5,7 +5,8 @@ import json, os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "docs", "data.json")
 CONTENT_ID = "744e1d3612d7c8ed"
-SPLITS = {"hold_A", "hold_B", "hold_C", "time_82"}
+SPLITS = {"hold_A", "hold_B", "hold_C", "time_82",          # 일반화 세션
+          "time_sub01", "time_sub02", "time_sub05", "time_sub10", "time_sub20"}  # Few-shot
 NEED = ("이름", "분할", "F1", "FNR", "FPR", "합")
 KEEP = ("이름", "모델", "입력", "파라미터", "분할", "F1", "FNR", "FPR", "합",
         "n_gid", "n_정상", "n_고장", "content_id", "note", "상세", "배지")

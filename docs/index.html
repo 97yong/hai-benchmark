@@ -65,6 +65,18 @@ h1{font-size:clamp(28px,5vw,40px);font-weight:800;letter-spacing:-.045em;line-he
      letter-spacing:-.02em;transition:color .12s}
 .lab:hover{color:var(--ink);text-decoration:none}
 .lab em{font-style:normal}
+
+/* ── 세션 토글 (일반화 / Few-shot) ── */
+.sess{display:inline-flex;gap:4px;margin-top:20px;background:var(--fill2);
+      border-radius:13px;padding:4px;max-width:100%}
+.sess button{font:inherit;font-size:14px;font-weight:700;letter-spacing:-.025em;
+             padding:8px 16px;border:0;border-radius:10px;background:transparent;
+             color:var(--sub);cursor:pointer;white-space:nowrap;
+             transition:color .12s,background .12s}
+.sess button:hover{color:var(--ink)}
+.sess button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:var(--lift-sm)}
+.sess-say{margin:10px 0 0;font-size:13.5px;font-weight:500;color:var(--dim);
+          line-height:1.55;max-width:56rem}
 .nav{display:flex;gap:26px;margin-top:22px;border-bottom:1px solid var(--edge);overflow-x:auto;
      scrollbar-width:none}
 .nav::-webkit-scrollbar{display:none}
@@ -245,6 +257,17 @@ tbody tr.det:hover{background:var(--fill)}
 .keys i{font-style:normal;color:var(--pale);font-weight:600;min-width:0;
         overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chart .none{fill:var(--dim);font-size:14px;font-weight:600}
+.chart + .chart{margin-top:18px}
+
+/* ── Few-shot 비율 곡선 ── */
+.cln{fill:none;stroke-width:2.4;stroke-linejoin:round;stroke-linecap:round}
+.cmk{stroke:var(--card);stroke-width:1.8}
+.cn{cursor:pointer;transition:opacity .15s ease}
+.chart svg:hover .cn{opacity:.3}
+.chart svg:hover .cn:hover{opacity:1}
+.cn .hit{pointer-events:all;fill:transparent}
+.lb3{paint-order:stroke fill;stroke:var(--card);stroke-width:3.6px;stroke-linejoin:round;
+     fill:var(--ink2);font-size:12px;font-weight:700;letter-spacing:-.025em;pointer-events:none}
 @media (prefers-reduced-motion:reduce){.node{animation:none}}
 
 /* ── notes ── */
@@ -286,8 +309,11 @@ footer p:first-child{color:var(--dim)}
   .sm dd:not(.who){grid-column:2;grid-row:1 / span 2;font-size:22px;text-align:right}
   .sm dd.who{grid-column:1;margin-top:2px}
 
-  /* 시나리오 탭: 다섯 개를 한 줄에 (개수 표시는 생략) */
-  .tabs{display:grid;grid-template-columns:1.35fr repeat(4,1fr);overflow:visible;gap:5px}
+  /* 세션 토글 · 시나리오 탭 */
+  .sess{width:100%;margin-top:16px}
+  .sess button{flex:1;padding:8px 4px;font-size:13px}
+  .sess-say{font-size:12.5px;margin-top:8px}
+  .tabs{display:grid;grid-template-columns:repeat(3,1fr);overflow:visible;gap:5px}
   .tab{min-width:0;padding:9px 2px;font-size:13px;white-space:nowrap}
   .tab i{display:none}
 
@@ -350,6 +376,11 @@ footer p:first-child{color:var(--dim)}
       </svg>
     </a>
   </div>
+  <div class="sess" role="tablist" aria-label="세션">
+    <button type="button" role="tab" data-s="general" aria-selected="true">일반화 세션</button>
+    <button type="button" role="tab" data-s="fewshot" aria-selected="false">Few-shot 세션</button>
+  </div>
+  <p class="sess-say" id="sess-say"></p>
   <nav class="nav" role="tablist" aria-label="페이지">
     <button type="button" role="tab" data-p="dash" aria-selected="true">대시보드</button>
     <button type="button" role="tab" data-p="chart" aria-selected="false">그래프</button>
@@ -396,7 +427,22 @@ footer p:first-child{color:var(--dim)}
 </section>
 
 <section class="pg" id="pg-chart" hidden>
-<div class="chart">
+<div class="chart" id="card-curve" hidden>
+  <div class="ch">
+    <h3>학습 비율 대비 성능</h3>
+    <div class="pick" role="group" aria-label="지표 선택">
+      <button type="button" data-m="F1" aria-pressed="true">F1</button>
+      <button type="button" data-m="합" aria-pressed="false">FNR+FPR</button>
+      <button type="button" data-m="FNR" aria-pressed="false">FNR</button>
+      <button type="button" data-m="FPR" aria-pressed="false">FPR</button>
+    </div>
+  </div>
+  <div id="plot2"></div>
+  <div id="tip2" class="tip" role="tooltip" aria-hidden="true"></div>
+  <ol id="keys2" class="keys"></ol>
+</div>
+
+<div class="chart" id="card-scatter">
   <div class="ch">
     <h3>파라미터 대비 성능</h3>
     <div class="pick" role="group" aria-label="지표 선택">
@@ -431,9 +477,25 @@ python3 submit.py 홍길동 "CNN2D w48" pred_*.csv \
       <a id="repo" href="#">사용법 자세히 보기</a></p>
   </div>
   <div class="note">
+    <h3>Few-shot 세션</h3>
+    <p>학습 데이터가 적을 때 얼마나 버티는지 재는 <b>학습 곡선</b> 세션입니다.
+      시험셋은 다섯 조건 모두 <b>Time 과 똑같고</b>(1,331 주행), 학습량만 줄입니다.
+      1% ⊂ 2% ⊂ 5% ⊂ 10% ⊂ 20% 로 <b>포함 관계</b>라 점 사이 차이가 학습량 때문임이 보장됩니다.</p>
+    <pre>python3 submit.py 홍길동 "CNN2D w48" pred.csv \
+    --split time_sub05     학습 5% 조건
+
+time_sub01  400창    time_sub02  794창
+time_sub05  1,986창  time_sub10  3,975창
+time_sub20  7,951창  (전량 39,761창)</pre>
+    <p style="margin:0">시험셋 행이 Time 과 같아 자동 판별이 안 되므로 <code>--split</code> 이
+      필요합니다. 파일명에 <code>time_sub05</code> 가 들어 있으면 생략해도 됩니다.
+      <b>다섯 조건을 다 내면</b> 그래프에 곡선이 완성됩니다.</p>
+  </div>
+  <div class="note">
     <h3>채점 규약</h3>
     <dl class="rules">
-      <dt>순위</dt><dd>네 시나리오의 <b>평균</b>으로 매깁니다.</dd>
+      <dt>순위</dt><dd>고른 세션에 속한 분할의 <b>평균</b>으로 매깁니다.
+        일반화 세션은 네 시나리오, Few-shot 세션은 다섯 비율입니다.</dd>
       <dt>집계</dt><dd>창 단위로 내면 채점기가 <b>주행 단위 다수결</b>로 묶습니다.</dd>
       <dt>FNR</dt><dd>고장을 정상이라 놓친 주행 비율(%). <b>안전상 가장 위험한 오류</b>입니다.</dd>
       <dt>FPR</dt><dd>정상을 고장이라 부른 주행 비율(%).</dd>
@@ -452,7 +514,7 @@ python3 submit.py 홍길동 "CNN2D w48" pred_*.csv \
 <script>
 const DATA = "data.json";
 const REPO = "https://github.com/97yong/hai-benchmark";
-const SPLITS = [
+const GEN = [
   {id:'hold_A', name:'Hold A', tick:'A', flow:'B·C 학습, A 시험', kind:'고속 레일',
    fr:'회전 45.8, 22.9 Hz', gid:1861, nrm:83},
   {id:'hold_B', name:'Hold B', tick:'B', flow:'A·C 학습, B 시험', kind:'중속 레일',
@@ -462,6 +524,22 @@ const SPLITS = [
   {id:'time_82', name:'Time', tick:'T', flow:'앞 80% 학습, 뒤 20% 시험', kind:'시간축 분할',
    fr:'여섯 셀 모두', gid:1331, nrm:82},
 ];
+// Few-shot: 시험셋은 Time 과 완전히 같고 학습량만 줄인다 (1% ⊂ 2% ⊂ 5% ⊂ 10% ⊂ 20%)
+const FEW = [
+  {id:'time_sub01', name:'1%',  tick:'1', ratio:1,  win:400,   flow:'학습 400창',   kind:'시험셋은 Time 과 동일'},
+  {id:'time_sub02', name:'2%',  tick:'2', ratio:2,  win:794,   flow:'학습 794창',   kind:'시험셋은 Time 과 동일'},
+  {id:'time_sub05', name:'5%',  tick:'5', ratio:5,  win:1986,  flow:'학습 1,986창', kind:'시험셋은 Time 과 동일'},
+  {id:'time_sub10', name:'10%', tick:'10', ratio:10, win:3975, flow:'학습 3,975창', kind:'시험셋은 Time 과 동일'},
+  {id:'time_sub20', name:'20%', tick:'20', ratio:20, win:7951, flow:'학습 7,951창', kind:'시험셋은 Time 과 동일'},
+];
+const SESSIONS = {
+  general:{name:'일반화 세션', splits:GEN,
+    say:'학습에 없던 레일(Hold A·B·C)과 미래 구간(Time)으로 옮겼을 때 버티는지 봅니다. 네 시나리오 평균으로 순위를 매깁니다.'},
+  fewshot:{name:'Few-shot 세션', splits:FEW,
+    say:'시험셋은 Time 과 똑같이 두고 학습량만 1·2·5·10·20 % 로 줄였습니다. 데이터가 적을 때 버티는지 봅니다 — 다섯 비율 평균으로 순위를 매깁니다.'},
+};
+let sess = 'general';
+let SPLITS = GEN;
 const CAP = .60, MEDAL = ['🥇','🥈','🥉'];
 let raw = [], key = 'F1', view = 'ALL', q = '';
 
@@ -479,15 +557,17 @@ const inp = e => e['입력'] ?? null;
 const named = id => SPLITS.find(s => s.id === id)?.name ?? id;
 $('repo').href = REPO;
 
+const inSess = e => SPLITS.some(s => s.id === e['분할']);
+
 function rollup(){
   const g = {};                                   // 한 사람이 모델을 여러 개 올릴 수 있다
-  raw.forEach(e => { (g[[person(e), arch(e), inp(e)].join('\u0000')] ??= []).push(e); });
+  raw.filter(inSess).forEach(e => { (g[[person(e), arch(e), inp(e)].join('\u0000')] ??= []).push(e); });
   return Object.entries(g).map(([id, list]) => {
     const name = id.split('\u0000')[0];
     const avg = k => list.reduce((a, e) => a + (e[k] ?? 0), 0) / list.length;
     const bySplit = {};
     list.forEach(e => { bySplit[e['분할']] = e; });
-    return {이름:name, 모델:arch(list[0]), 입력:inp(list[0]), 파라미터:size(list[0]),
+    return {키:id, 이름:name, 모델:arch(list[0]), 입력:inp(list[0]), 파라미터:size(list[0]),
             상세:list[0]['상세'], 배지:list[0]['배지'], done:list.length, bySplit,
             F1:avg('F1'), FNR:avg('FNR'), FPR:avg('FPR'), 합:avg('합')};
   });
@@ -526,7 +606,8 @@ function drawBoard(){
     .filter(hit).sort(order(key));
 
   if (!rows.length){
-    $('tbl').innerHTML = `<p class="blank">${q ? '찾는 이름이나 모델이 없습니다.' : '아직 제출이 없습니다.'}</p>`;
+    $('tbl').innerHTML = `<p class="blank">${q ? '찾는 이름이나 모델이 없습니다.'
+      : SESSIONS[sess].name + ' 제출이 아직 없습니다.'}</p>`;
     return;
   }
   const head = `<tr><th></th><th>이름</th><th>모델</th><th>파라미터</th>
@@ -561,7 +642,7 @@ function drawBoard(){
       <td class="v n${hi(r.FNR, 'FNR')}" data-l="FNR %">${f3(r.FNR)}</td>
       <td class="v n${hi(r.FPR, 'FPR')}" data-l="FPR %">${f3(r.FPR)}</td>
       <td class="hero n${hi(r['합'], '합')}" data-l="${all ? '평균 FNR+FPR %' : 'FNR+FPR %'}">${f3(r['합'])}${
-        all && r.done < 4 ? `<u> ${r.done}/4</u>` : ''}</td>
+        all && r.done < SPLITS.length ? `<u> ${r.done}/${SPLITS.length}</u>` : ''}</td>
       ${tail}</tr>` + (spec.length ? `<tr class="det hide" data-d="${i}">
       <td colspan="${all ? 9 : 8}"><dl class="spec">${spec.map(([k, v]) =>
         `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></td></tr>` : '');
@@ -767,7 +848,113 @@ function drawPlot(){
   bindTip(pts, hue);                                   // 새로 그린 점에 붙인다
 }
 
-function draw(){ drawTabs(); drawBoard(); drawSummary(); drawPlot(); }
+function yRange(vs, low){
+  const vmin = Math.min(...vs), vmax = Math.max(...vs);
+  return low ? [0, Math.max(nice(vmax * 1.3), .05)]
+             : [Math.max(0, Math.floor((vmin - (1 - vmin) * .5) * 10) / 10), 1];
+}
+
+/* Few-shot — 학습 비율 대비 성능 곡선. 모델(이름+모델+입력)마다 한 선. */
+function drawCurve(){
+  const rats = SPLITS.filter(s => s.ratio);
+  const models = rollup()
+    .map(m => ({...m, pts: rats.map(s => ({s, e: m.bySplit[s.id]})).filter(o => o.e)}))
+    .filter(m => m.pts.length);
+  const cw = $('plot2').clientWidth || 900;
+  const W = Math.round(Math.max(320, Math.min(1240, cw)));
+  const narrow = W < 640;
+  const H = narrow ? 360 : W < 960 ? 420 : 470;
+  const L = narrow ? 44 : 66, R = narrow ? 14 : 150, T = 30, B = narrow ? 50 : 58;
+  const mname = metric === '합' ? 'FNR+FPR' : metric;
+  if (!models.length || !rats.length){
+    $('plot2').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Few-shot 제출 없음">
+      <text class="none" x="${W/2}" y="${H/2}" text-anchor="middle">Few-shot 세션 제출이 아직 없습니다</text></svg>`;
+    $('keys2').innerHTML = '';
+    return;
+  }
+  const low = LOWER[metric];
+  const last = m => m.pts[m.pts.length - 1].e[metric];
+  models.sort((a, b) => low ? last(a) - last(b) : last(b) - last(a));
+  const hue = {};
+  models.forEach((m, i) => { hue[m.키] = HUE[i % HUE.length]; });
+
+  const xs = rats.map(s => Math.log10(s.ratio));
+  const x0 = Math.min(...xs) - .1, x1 = Math.max(...xs) + .1;
+  const [y0, y1] = yRange(models.flatMap(m => m.pts.map(o => o.e[metric])), low);
+  const X = v => L + (Math.log10(v) - x0) / (x1 - x0) * (W - L - R);
+  const Y = v => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
+  const stp = [0.005, 0.01, 0.02, 0.025, 0.05, 0.1, 0.2, 0.25].find(t => (y1 - y0) / t <= 6) ?? 0.25;
+  const yt = [];
+  for (let v = Math.ceil(y0 / stp - 1e-9) * stp; v <= y1 + 1e-9; v += stp) yt.push(+v.toFixed(4));
+
+  const grid = yt.map(v => `<line class="gl${v === 0 ? ' zero' : ''}" x1="${L}" x2="${W-R}"
+      y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}"/>`).join('')
+    + rats.map(s => `<line class="gl" x1="${X(s.ratio).toFixed(1)}" x2="${X(s.ratio).toFixed(1)}"
+      y1="${T}" y2="${H-B}"/>`).join('');
+  const yl = yt.map(v => `<text class="at" x="${L-13}" y="${(Y(v)+4.5).toFixed(1)}"
+      text-anchor="end">${(v * 100).toFixed(stp >= .01 ? 0 : 1)}</text>`).join('');
+  const xl = rats.map(s => `<text class="at" x="${X(s.ratio).toFixed(1)}" y="${H-B+24}"
+      text-anchor="middle">${s.name}</text>`).join('');
+
+  // 오른쪽 끝 이름표 — 겹치면 아래로 비켜 놓는다
+  const place = [];
+  const lines = models.map((m, i) => {
+    const col = hue[m.키];
+    const d = m.pts.map((o, j) => `${j ? 'L' : 'M'}${X(o.s.ratio).toFixed(1)},${Y(o.e[metric]).toFixed(1)}`).join(' ');
+    const end = m.pts[m.pts.length - 1];
+    let ly = Y(end.e[metric]);
+    if (!narrow){
+      while (place.some(v => Math.abs(v - ly) < 14) && ly < H - B) ly += 14;
+      place.push(ly);
+    }
+    const mk = m.pts.map((o, j) => `<g class="cn" data-mi="${i}" data-ri="${j}">
+        <circle class="hit" cx="${X(o.s.ratio).toFixed(1)}" cy="${Y(o.e[metric]).toFixed(1)}" r="13"/>
+        <circle class="cmk" cx="${X(o.s.ratio).toFixed(1)}" cy="${Y(o.e[metric]).toFixed(1)}"
+          r="${i === 0 ? 5.5 : 4.5}" fill="${col}"/></g>`).join('');
+    const tag = narrow ? '' : `<text class="lb3" x="${(X(end.s.ratio) + 10).toFixed(1)}"
+        y="${(ly + 4).toFixed(1)}">${esc(m['이름'])} · ${esc(m['모델'] || '')}</text>`;
+    return `<path class="cln" d="${d}" stroke="${col}"/>${mk}${tag}`;
+  }).join('');
+
+  $('plot2').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img"
+    aria-label="학습 비율 대비 ${mname} 곡선">
+    ${grid}${yl}${xl}
+    <text class="ttl" x="${L}" y="${T-10}">${mname} %${low ? ' (낮을수록 좋음)' : ' (높을수록 좋음)'}</text>
+    <text class="ttl" x="${W-R}" y="${H-8}" text-anchor="end">학습 비율</text>
+    ${lines}</svg>`;
+
+  $('keys2').innerHTML = models.map((m, i) => `<li><b style="background:${hue[m.키]}">${i + 1}</b>
+    <span>${esc(m['이름'])}</span><i>${esc([m['모델'], m['입력']].filter(Boolean).join(' · '))}</i>
+    <u>${f3p(last(m))} · ${m.pts.length}/${rats.length}</u></li>`).join('');
+
+  // 곡선 툴팁 — 점마다 그 비율의 네 지표를 보여준다
+  const tip = $('tip2'), box = $('plot2').parentElement;
+  const hide = () => { tip.classList.remove('on'); tip.setAttribute('aria-hidden', 'true'); };
+  const move = (ev, m, o) => {
+    tip.innerHTML = `<h4 style="color:${hue[m.키]}">${esc(m['이름'])}</h4>
+      <p>${esc([m['모델'], m['입력']].filter(Boolean).join(' · '))}</p>
+      <hr><dl><div class="cur"><dt>학습 비율</dt><dd>${o.s.name}</dd></div>
+      <div><dt>학습창</dt><dd>${o.s.win.toLocaleString()}</dd></div></dl>
+      <hr><dl>${MET.map(([k, lab]) =>
+        `<div class="${k === metric ? 'cur' : ''}"><dt>${lab}</dt><dd>${f3p(o.e[k])}</dd></div>`).join('')}</dl>`;
+    tip.classList.add('on'); tip.setAttribute('aria-hidden', 'false');
+    const r = box.getBoundingClientRect(), t = tip.getBoundingClientRect();
+    let x = ev.clientX - r.left + 16, y = ev.clientY - r.top - t.height / 2;
+    if (x + t.width > r.width - 8) x = ev.clientX - r.left - t.width - 16;
+    tip.style.left = Math.max(8, x) + 'px';
+    tip.style.top = Math.min(Math.max(8, y), r.height - t.height - 8) + 'px';
+  };
+  $('plot2').querySelectorAll('.cn').forEach(g => {
+    const m = models[+g.dataset.mi], o = m.pts[+g.dataset.ri];
+    g.addEventListener('pointerenter', e => move(e, m, o));
+    g.addEventListener('pointermove', e => move(e, m, o));
+    g.addEventListener('pointerleave', hide);
+  });
+  if (!$('plot2').dataset.tip){ $('plot2').addEventListener('pointerleave', hide); $('plot2').dataset.tip = '1'; }
+}
+
+function drawCharts(){ drawPlot(); if (sess === 'fewshot') drawCurve(); }
+function draw(){ drawTabs(); drawBoard(); drawSummary(); drawCharts(); }
 
 document.querySelectorAll('.pick button[data-k]').forEach(b => b.addEventListener('click', () => {
   key = b.dataset.k;
@@ -778,8 +965,8 @@ document.querySelectorAll('.pick button[data-k]').forEach(b => b.addEventListene
 document.querySelectorAll('.pick button[data-m]').forEach(b => b.addEventListener('click', () => {
   metric = b.dataset.m;
   document.querySelectorAll('.pick button[data-m]').forEach(o =>
-    o.setAttribute('aria-pressed', String(o === b)));
-  drawPlot();
+    o.setAttribute('aria-pressed', String(o.dataset.m === b.dataset.m)));
+  drawCharts();
 }));
 $('q').addEventListener('input', e => { q = e.target.value.trim(); drawBoard(); });
 
@@ -802,25 +989,44 @@ async function load(){
 
 $('rfr').addEventListener('click', load);
 
-/* 페이지 전환 — 주소에 #대시보드/#그래프/#사용법 이 남아 링크로 공유된다 */
+/* 전환 — 주소는 #대시보드 / #fewshot/그래프 꼴. 기존 #chart 링크도 그대로 열린다 */
 const PAGES = ['dash', 'chart', 'guide'];
-function go(page, push){
-  const to = PAGES.includes(page) ? page : 'dash';
-  PAGES.forEach(x => { $('pg-' + x).hidden = x !== to; });
+let page = 'dash';
+
+function apply(){
+  PAGES.forEach(x => { $('pg-' + x).hidden = x !== page; });
   document.querySelectorAll('.nav button').forEach(b =>
-    b.setAttribute('aria-selected', String(b.dataset.p === to)));
-  if (push && location.hash.slice(1) !== to) history.replaceState(null, '', '#' + to);
-  if (to === 'chart') drawPlot();
+    b.setAttribute('aria-selected', String(b.dataset.p === page)));
+  document.querySelectorAll('.sess button').forEach(b =>
+    b.setAttribute('aria-selected', String(b.dataset.s === sess)));
+  $('sess-say').textContent = SESSIONS[sess].say;
+  $('card-curve').hidden = sess !== 'fewshot';
 }
-document.querySelectorAll('.nav button').forEach(b =>
-  b.addEventListener('click', () => go(b.dataset.p, true)));
-window.addEventListener('hashchange', () => go(location.hash.slice(1), false));
+
+function route(h, push){
+  const part = String(h || '').split('/').filter(Boolean);
+  let s = sess, p = page;
+  if (SESSIONS[part[0]]){ s = part[0]; p = PAGES.includes(part[1]) ? part[1] : 'dash'; }
+  else if (PAGES.includes(part[0])){ s = 'general'; p = part[0]; }   // 기존 링크 호환
+  const moved = s !== sess;
+  sess = s; page = p; SPLITS = SESSIONS[sess].splits;
+  if (moved) view = 'ALL';
+  apply();
+  if (push) history.replaceState(null, '', '#' + (sess === 'general' ? '' : sess + '/') + page);
+  draw();
+}
+
+document.querySelectorAll('.nav button').forEach(b => b.addEventListener('click',
+  () => route((sess === 'general' ? '' : sess + '/') + b.dataset.p, true)));
+document.querySelectorAll('.sess button').forEach(b => b.addEventListener('click',
+  () => route(b.dataset.s + '/' + page, true)));
+window.addEventListener('hashchange', () => route(location.hash.slice(1), false));
 let resizeT;
 window.addEventListener('resize', () => {
   clearTimeout(resizeT);
-  resizeT = setTimeout(() => { if (!$('pg-chart').hidden) drawPlot(); }, 150);
+  resizeT = setTimeout(() => { if (page === 'chart') drawCharts(); }, 150);
 });
-go(location.hash.slice(1), false);
+route(location.hash.slice(1), false);
 
 draw();
 load();
