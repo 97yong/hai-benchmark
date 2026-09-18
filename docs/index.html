@@ -75,8 +75,6 @@ h1{font-size:clamp(28px,5vw,40px);font-weight:800;letter-spacing:-.045em;line-he
              transition:color .12s,background .12s}
 .sess button:hover{color:var(--ink)}
 .sess button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:var(--lift-sm)}
-.sess-say{margin:10px 0 0;font-size:13.5px;font-weight:500;color:var(--dim);
-          line-height:1.55;max-width:56rem}
 .nav{display:flex;gap:26px;margin-top:22px;border-bottom:1px solid var(--edge);overflow-x:auto;
      scrollbar-width:none}
 .nav::-webkit-scrollbar{display:none}
@@ -380,7 +378,6 @@ footer p:first-child{color:var(--dim)}
     <button type="button" role="tab" data-s="general" aria-selected="true">일반화 세션</button>
     <button type="button" role="tab" data-s="fewshot" aria-selected="false">Few-shot 세션</button>
   </div>
-  <p class="sess-say" id="sess-say"></p>
   <nav class="nav" role="tablist" aria-label="페이지">
     <button type="button" role="tab" data-p="dash" aria-selected="true">대시보드</button>
     <button type="button" role="tab" data-p="chart" aria-selected="false">그래프</button>
@@ -533,10 +530,8 @@ const FEW = [
   {id:'time_sub20', name:'20%', tick:'20', ratio:20, win:7951, flow:'학습 7,951창', kind:'시험셋은 Time 과 동일'},
 ];
 const SESSIONS = {
-  general:{name:'일반화 세션', splits:GEN,
-    say:'학습에 없던 레일(Hold A·B·C)과 미래 구간(Time)으로 옮겼을 때 버티는지 봅니다. 네 시나리오 평균으로 순위를 매깁니다.'},
-  fewshot:{name:'Few-shot 세션', splits:FEW,
-    say:'시험셋은 Time 과 똑같이 두고 학습량만 1·2·5·10·20 % 로 줄였습니다. 데이터가 적을 때 버티는지 봅니다 — 다섯 비율 평균으로 순위를 매깁니다.'},
+  general:{name:'일반화 세션', splits:GEN},
+  fewshot:{name:'Few-shot 세션', splits:FEW},
 };
 let sess = 'general';
 let SPLITS = GEN;
@@ -999,7 +994,6 @@ function apply(){
     b.setAttribute('aria-selected', String(b.dataset.p === page)));
   document.querySelectorAll('.sess button').forEach(b =>
     b.setAttribute('aria-selected', String(b.dataset.s === sess)));
-  $('sess-say').textContent = SESSIONS[sess].say;
   $('card-curve').hidden = sess !== 'fewshot';
 }
 
