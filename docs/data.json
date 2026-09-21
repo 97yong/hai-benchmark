@@ -1623,6 +1623,33 @@
   "계정": "minseokChae1811"
  },
  {
+  "이름": "김성종",
+  "모델": "MSCNN2 (CH1) v2",
+  "입력": "시계열 → 모델 내 STFT 256/128 · 진동 CH1 단독",
+  "파라미터": "0.6M",
+  "분할": "time_sub01",
+  "F1": 0.9788390204113341,
+  "FNR": 0.0,
+  "FPR": 0.10975609756097561,
+  "합": 0.10975609756097561,
+  "n_gid": 1331,
+  "n_정상": 82,
+  "n_고장": 1249,
+  "content_id": "744e1d3612d7c8ed",
+  "note": "General 세션 등록 레시피(v2)와 동일 · 학습 데이터 1 % (oht_loader v1.2.0 splits/time_sub01.json · 시험셋 = time_82) · 시드 42 단일 · 마지막 원 가중치(EMA 없음)",
+  "상세": {
+   "전처리": "12.8 kHz · 0.5 s 창 · 창 단위 z 정규화 · 모델 내부 STFT(Hann 256 · hop 128) → log1p → 스펙트로그램별 전역 z · 증강 없음",
+   "모델 구조": "MSCNN2 이식(0.58M): stem 3×3(주파수 stride 4) → Inception(3×3 · 1×17 · 7×1) + SE → MaxPool → TFC 64 → TFC 128 → Conv 256 + SE → GAP → FC 128 → FC 5 · 헤드 dropout 0/0 · 단일 모델 · 비적응",
+   "손실 함수": "CrossEntropy (label smoothing 0.1 · 셀 균등 표본가중) + 비용 행렬 고장→정상 ×10 · 5클래스 학습 → 3클래스 사상",
+   "Optimization": "AdamW wd 5e-4 · cosine (warmup 5 ep · floor 0.05)",
+   "Epoch": "60",
+   "Batch": "128",
+   "LR": "4e-4"
+  },
+  "배지": [],
+  "계정": "KSJ-maker"
+ },
+ {
   "이름": "김용채",
   "모델": "분포강건/스타일혼합",
   "입력": "STFT",
