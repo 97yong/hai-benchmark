@@ -2543,8 +2543,8 @@
    "전처리": "CH1 축 · 창별 RMS 정규화 · STFT n256/h128 1채널 · 진폭 증강 ±6 dB",
    "모델 구조": "CNN2D 5블록(잔차 연결) · width 24 · dropout 0.1 · 단일 모델",
    "손실 함수": "CrossEntropy (label smoothing 0.1) · 분포강건: GroupDRO 셀별 최악손실 가중 (η 0.01) · 스타일혼합: MixStyle stem·1블록 뒤 (p 0.5, α 0.1)",
-   "Optimization": "AdamW (wd 1e-4) · OneCycle · grad clip 5.0",
-   "Epoch": "50",
+   "Optimization": "AdamW (wd 1e-4) · OneCycle · grad clip 5.0 · 갱신 3,000회로 맞춤",
+   "Epoch": "50 (갱신 3,000회)",
    "Batch": "128",
    "LR": "3e-4"
   },
