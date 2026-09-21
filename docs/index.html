@@ -216,6 +216,8 @@ tbody tr.det:hover{background:var(--fill)}
 .tip .cur dt{color:var(--tip-key)}
 .tip .cur dd{color:var(--tip-key)}
 .chart h3{margin:0;font-size:18px;font-weight:800;letter-spacing:-.04em}
+.ctl2{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chart svg.zoomable{cursor:ns-resize;touch-action:pan-x}
 .chart .ch{display:flex;justify-content:space-between;align-items:center;gap:16px;
            flex-wrap:wrap;margin-bottom:20px}
 .chart svg{width:100%;height:auto;display:block;overflow:visible}
@@ -426,11 +428,17 @@ footer p:first-child{color:var(--dim)}
 <div class="chart" id="card-curve" hidden>
   <div class="ch">
     <h3>학습 비율 대비 성능</h3>
+    <div class="ctl2">
+    <div class="pick" role="group" aria-label="Y축 범위">
+      <button type="button" data-yz="full" data-for="plot2" aria-pressed="true">전체</button>
+      <button type="button" data-yz="fit" data-for="plot2" aria-pressed="false">확대</button>
+    </div>
     <div class="pick" role="group" aria-label="지표 선택">
       <button type="button" data-m="F1" aria-pressed="true">F1</button>
       <button type="button" data-m="합" aria-pressed="false">FNR+FPR</button>
       <button type="button" data-m="FNR" aria-pressed="false">FNR</button>
       <button type="button" data-m="FPR" aria-pressed="false">FPR</button>
+    </div>
     </div>
   </div>
   <div id="plot2"></div>
@@ -441,11 +449,17 @@ footer p:first-child{color:var(--dim)}
 <div class="chart" id="card-scatter">
   <div class="ch">
     <h3>파라미터 대비 성능</h3>
+    <div class="ctl2">
+    <div class="pick" role="group" aria-label="Y축 범위">
+      <button type="button" data-yz="full" data-for="plot" aria-pressed="true">전체</button>
+      <button type="button" data-yz="fit" data-for="plot" aria-pressed="false">확대</button>
+    </div>
     <div class="pick" role="group" aria-label="지표 선택">
       <button type="button" data-m="F1" aria-pressed="true">F1</button>
       <button type="button" data-m="합" aria-pressed="false">FNR+FPR</button>
       <button type="button" data-m="FNR" aria-pressed="false">FNR</button>
       <button type="button" data-m="FPR" aria-pressed="false">FPR</button>
+    </div>
     </div>
   </div>
   <div id="plot"></div>
@@ -747,10 +761,8 @@ function drawPlot(){
   if (x1 - x0 < .8){ const c = (x0 + x1) / 2; x0 = c - .7; x1 = c + .7; }
   else { const pad = (x1 - x0) * .22; x0 -= pad; x1 += pad; }
 
-  const vs = pts.map(p => p.mv), vmin = Math.min(...vs), vmax = Math.max(...vs);
-  let y0, y1;
-  if (low){ y0 = 0; y1 = Math.max(nice(vmax * 1.3), .05); }
-  else { y1 = 1; y0 = Math.max(0, Math.floor((vmin - (1 - vmin) * .5) * 10) / 10); }
+  const [y0, y1] = yWin('plot', pts.map(p => p.mv), low);
+  YZ.plot.cur = {y0, y1, T, H, B, low};
   const X = v => L + (Math.log10(v) - x0) / (x1 - x0) * (W - L - R);
   const Y = v => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
 
@@ -759,7 +771,7 @@ function drawPlot(){
     for (const m of [1, 3]){ const v = m * 10 ** e, l = Math.log10(v);
       if (l >= x0 && l <= x1) xt.push(v); }
   // y 눈금 — 정수 % 로 떨어지는 간격
-  const stp = [0.005, 0.01, 0.02, 0.025, 0.05, 0.1, 0.2, 0.25].find(t => (y1 - y0) / t <= 6) ?? 0.25;
+  const stp = YSTEPS.find(t => (y1 - y0) / t <= 6) ?? 0.25;
   const yt = [];
   for (let v = Math.ceil(y0 / stp - 1e-9) * stp; v <= y1 + 1e-9; v += stp) yt.push(+v.toFixed(4));
 
@@ -768,7 +780,7 @@ function drawPlot(){
     + xt.map(v => `<line class="gl" x1="${X(v).toFixed(1)}" x2="${X(v).toFixed(1)}"
       y1="${T}" y2="${H-B}"/>`).join('');
   const yl = yt.map(v => `<text class="at" x="${L-13}" y="${(Y(v)+4.5).toFixed(1)}"
-      text-anchor="end">${(v * 100).toFixed(stp >= .01 ? 0 : 1)}</text>`).join('');
+      text-anchor="end">${(v * 100).toFixed(yDec(stp))}</text>`).join('');
   const xl = xt.map(v => `<text class="at" x="${X(v).toFixed(1)}" y="${H-B+24}"
       text-anchor="middle">${fmtN(v)}</text>`).join('');
 
@@ -831,9 +843,11 @@ function drawPlot(){
     aria-label="파라미터 수 대비 ${mname} 산점도">
     ${grid}${yl}${xl}
     <text class="ttl" x="${L}" y="${T-10}">${mname} %${
-      low ? ' (낮을수록 좋음)' : ' (높을수록 좋음)'} · 번호는 ${mname} 순위</text>
+      low ? ' (낮을수록 좋음)' : ' (높을수록 좋음)'} · 번호는 ${mname} 순위${
+      (n => n ? ` · 범위 밖 ${n}개` : '')(pts.filter(p => p.mv < y0 - 1e-9 || p.mv > y1 + 1e-9).length)}</text>
     <text class="ttl" x="${W-R}" y="${H-8}" text-anchor="end">파라미터 수</text>
-    <g class="under">${under.join('')}</g>${nodes}</svg>`;
+    <defs><clipPath id="cp-plot"><rect x="0" y="${T - 12}" width="${W}" height="${H - B - T + 24}"/></clipPath></defs>
+    <g clip-path="url(#cp-plot)"><g class="under">${under.join('')}</g>${nodes}</g></svg>`;
 
   // 전체 순위표 — 번호와 같은 순서
   $('keys').innerHTML = P.map(({p, i, col}) => `<li><b style="background:${col}">${i + 1}</b>
@@ -841,6 +855,22 @@ function drawPlot(){
     <u>${f3p(p.mv)}</u></li>`).join('');
   bindTip(pts, hue);                                   // 새로 그린 점에 붙인다
 }
+
+// Y축 확대 — 그래프별 상태. mode: full(기본 범위) / fit(데이터에 맞춤). range: 휠·드래그로 직접 잡은 범위
+const YZ = {plot: {mode: 'full', range: null, cur: null}, plot2: {mode: 'full', range: null, cur: null}};
+function yWin(id, vs, low){
+  const z = YZ[id];
+  if (z.range) return z.range;
+  if (z.mode === 'fit'){                     // 상위 절반(중앙값보다 좋은 쪽)에 맞춘다 — 하위 이상치가 범위를 끌어내리지 않게
+    const s = [...vs].sort((a, b) => low ? a - b : b - a);
+    const top = s.slice(0, Math.max(2, Math.ceil(s.length / 2)));
+    const lo = Math.min(...top), hi = Math.max(...top), span = Math.max(hi - lo, .004);
+    return [Math.max(0, lo - span * .25), low ? hi + span * .25 : Math.min(1, hi + span * .25)];
+  }
+  return yRange(vs, low);
+}
+const YSTEPS = [0.0005, 0.001, 0.002, 0.0025, 0.005, 0.01, 0.02, 0.025, 0.05, 0.1, 0.2, 0.25];
+const yDec = stp => stp >= .01 ? 0 : stp >= .001 ? 1 : 2;
 
 function yRange(vs, low){
   const vmin = Math.min(...vs), vmax = Math.max(...vs);
@@ -874,10 +904,11 @@ function drawCurve(){
 
   const xs = rats.map(s => Math.log10(s.ratio));
   const x0 = Math.min(...xs) - .1, x1 = Math.max(...xs) + .1;
-  const [y0, y1] = yRange(models.flatMap(m => m.pts.map(o => o.e[metric])), low);
+  const [y0, y1] = yWin('plot2', models.flatMap(m => m.pts.map(o => o.e[metric])), low);
+  YZ.plot2.cur = {y0, y1, T, H, B, low};
   const X = v => L + (Math.log10(v) - x0) / (x1 - x0) * (W - L - R);
   const Y = v => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
-  const stp = [0.005, 0.01, 0.02, 0.025, 0.05, 0.1, 0.2, 0.25].find(t => (y1 - y0) / t <= 6) ?? 0.25;
+  const stp = YSTEPS.find(t => (y1 - y0) / t <= 6) ?? 0.25;
   const yt = [];
   for (let v = Math.ceil(y0 / stp - 1e-9) * stp; v <= y1 + 1e-9; v += stp) yt.push(+v.toFixed(4));
 
@@ -886,7 +917,7 @@ function drawCurve(){
     + rats.map(s => `<line class="gl" x1="${X(s.ratio).toFixed(1)}" x2="${X(s.ratio).toFixed(1)}"
       y1="${T}" y2="${H-B}"/>`).join('');
   const yl = yt.map(v => `<text class="at" x="${L-13}" y="${(Y(v)+4.5).toFixed(1)}"
-      text-anchor="end">${(v * 100).toFixed(stp >= .01 ? 0 : 1)}</text>`).join('');
+      text-anchor="end">${(v * 100).toFixed(yDec(stp))}</text>`).join('');
   const xl = rats.map(s => `<text class="at" x="${X(s.ratio).toFixed(1)}" y="${H-B+24}"
       text-anchor="middle">${s.name}</text>`).join('');
 
@@ -913,9 +944,12 @@ function drawCurve(){
   $('plot2').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img"
     aria-label="학습 비율 대비 ${mname} 곡선">
     ${grid}${yl}${xl}
-    <text class="ttl" x="${L}" y="${T-10}">${mname} %${low ? ' (낮을수록 좋음)' : ' (높을수록 좋음)'}</text>
+    <text class="ttl" x="${L}" y="${T-10}">${mname} %${low ? ' (낮을수록 좋음)' : ' (높을수록 좋음)'}${
+      (n => n ? ` · 범위 밖 ${n}점` : '')(models.flatMap(m => m.pts).filter(o =>
+        o.e[metric] < y0 - 1e-9 || o.e[metric] > y1 + 1e-9).length)}</text>
     <text class="ttl" x="${W-R}" y="${H-8}" text-anchor="end">학습 비율</text>
-    ${lines}</svg>`;
+    <defs><clipPath id="cp-plot2"><rect x="0" y="${T - 12}" width="${W}" height="${H - B - T + 24}"/></clipPath></defs>
+    <g clip-path="url(#cp-plot2)">${lines}</g></svg>`;
 
   $('keys2').innerHTML = models.map((m, i) => `<li><b style="background:${hue[m.키]}">${i + 1}</b>
     <span>${esc(m['이름'])}</span><i>${esc([m['모델'], m['입력']].filter(Boolean).join(' · '))}</i>
@@ -956,7 +990,54 @@ document.querySelectorAll('.pick button[data-k]').forEach(b => b.addEventListene
     o.setAttribute('aria-pressed', String(o === b)));
   drawBoard();
 }));
+document.querySelectorAll('.pick button[data-yz]').forEach(b => b.addEventListener('click', () => {
+  const id = b.dataset.for;
+  YZ[id].mode = b.dataset.yz; YZ[id].range = null;
+  document.querySelectorAll(`.pick button[data-for="${id}"]`).forEach(o =>
+    o.setAttribute('aria-pressed', String(o === b)));
+  drawCharts();
+}));
+function redraw(id){ id === 'plot2' ? drawCurve() : drawPlot(); }
+function yAt(id, clientY){                                   // 화면 좌표 → y 값
+  const c = YZ[id].cur, svg = $(id).querySelector('svg'); if (!c || !svg) return null;
+  const r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+  const py = (clientY - r.top) / r.height * vb.height;
+  return c.y0 + (1 - (py - c.T) / (c.H - c.T - c.B)) * (c.y1 - c.y0);
+}
+function clampY(a, b, low){
+  const lo = 0, hi = low ? 2 : 1, span = Math.min(Math.max(b - a, .002), hi - lo);
+  if (a < lo){ a = lo; b = lo + span; } if (b > hi){ b = hi; a = hi - span; }
+  return [a, b];
+}
+['plot', 'plot2'].forEach(id => {
+  const el = $(id);
+  el.addEventListener('wheel', ev => {                     // 휠 — 커서 위치를 중심으로 확대·축소
+    const c = YZ[id].cur; if (!c) return;
+    ev.preventDefault();
+    const v = yAt(id, ev.clientY), f = ev.deltaY < 0 ? .8 : 1.25;
+    YZ[id].range = clampY(v - (v - c.y0) * f, v + (c.y1 - v) * f, c.low);
+    redraw(id);
+  }, {passive: false});
+  let drag = null;                                        // 드래그 — 위아래로 이동
+  el.addEventListener('pointerdown', ev => {
+    if (ev.button !== 0 || !YZ[id].cur) return;
+    drag = {y: ev.clientY, v: yAt(id, ev.clientY), r: [YZ[id].cur.y0, YZ[id].cur.y1], moved: false};
+  });
+  window.addEventListener('pointermove', ev => {
+    if (!drag) return;
+    if (Math.abs(ev.clientY - drag.y) < 4 && !drag.moved) return;
+    drag.moved = true;
+    const d = yAt(id, ev.clientY) - drag.v, c = YZ[id].cur;
+    YZ[id].range = clampY(drag.r[0] - d, drag.r[1] - d, c.low);
+    redraw(id);
+    drag.v = yAt(id, ev.clientY); drag.r = [YZ[id].cur.y0, YZ[id].cur.y1];
+  });
+  window.addEventListener('pointerup', () => { drag = null; });
+  el.addEventListener('dblclick', () => { YZ[id].range = null; redraw(id); });  // 더블클릭 — 되돌리기
+  el.title = '휠: Y축 확대·축소 · 드래그: 위아래 이동 · 더블클릭: 되돌리기';
+});
 document.querySelectorAll('.pick button[data-m]').forEach(b => b.addEventListener('click', () => {
+  YZ.plot.range = null; YZ.plot2.range = null;             // 지표가 바뀌면 척도가 달라지므로 초기화
   metric = b.dataset.m;
   document.querySelectorAll('.pick button[data-m]').forEach(o =>
     o.setAttribute('aria-pressed', String(o.dataset.m === b.dataset.m)));
